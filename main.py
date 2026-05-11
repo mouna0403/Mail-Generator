@@ -17,7 +17,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
 APP_PASSWORD = os.getenv("APP_PASSWORD")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
 
 
 SUBJECTS_FR = [
@@ -30,55 +30,8 @@ SUBJECTS_EN = [
     "Spontaneous Application – Data & AI",
     "Application – Data Scientist / AI Engineer",
     "Data Science Profile – Open Application",
-]
 
 
-# ================= LLM =================
-
-def get_llm_prompt(lang: str):
-    llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        api_key=GROQ_API_KEY,
-        temperature=0.4,
-    )
-
-    if lang == "FR":
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", """Tu es un assistant de reformulation.
-Reformule le texte suivant en changeant uniquement les mots et tournures de phrases.
-
-Règles strictes :
-- Conserve exactement les mêmes idées, dans le même ordre
-- Conserve tous les faits (noms, entreprises, diplômes, postes)
-- Conserve le ton professionnel et la longueur approximative
-- Ne rajoute rien, ne supprime rien
-- Ne remplace jamais "alternance" par "stage"
-- Réponds uniquement avec le texte reformulé"""),
-            ("human", "{email_body}")
-        ])
-    else:
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are a reformulation assistant.
-Reformulate the following text by only changing words and sentence structures.
-
-Strict rules:
-- Keep exactly the same ideas, in the same order
-- Keep all facts (names, companies, degrees, positions)
-- Keep professional tone and length
-- Do not add or remove anything
-- Never replace "alternance" with "internship"
-- Reply only with the reformulated text"""),
-            ("human", "{email_body}")
-        ])
-
-    return llm, prompt
-
-
-def reformulate_email(body: str, lang: str) -> str:
-    llm, prompt = get_llm_prompt(lang)
-    chain = prompt | llm
-    response = chain.invoke({"email_body": body})
-    return response.content
 
 
 # ================= EMAIL LOGIC =================
