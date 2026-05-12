@@ -1,6 +1,7 @@
 # Email Sender V2 — Google Sheets Bulk Sender (Streamlit)
 
-Application Streamlit permettant d’envoyer automatiquement des emails de candidature personnalisés à partir d’un Google Sheet, avec gestion de file d’attente, déduplication avancée, suppression des doublons, gestion multi-CV (FR/EN), et envoi séquentiel contrôlé avec pause aléatoire.
+Application Streamlit permettant d’envoyer automatiquement des emails de candidature à partir d’un Google Sheet.  
+Elle gère l’envoi en série, la déduplication, le suivi des statuts et l’utilisation de deux CV (FR / EN).
 
 ---
 
@@ -10,236 +11,198 @@ Application Streamlit permettant d’envoyer automatiquement des emails de candi
 - Compte Gmail
 - Validation en deux étapes activée
 - Mot de passe d’application Gmail
-- Google Cloud Project avec :
-  - Google Sheets API activée
-  - Google Drive API activée
-- Service Account Google (fichier JSON)
+- Compte Google (Google Sheets + Google Cloud)
 
 ---
 
-## 1. Structure du Google Sheet
+## 1. Gmail — mot de passe d’application
 
-Le Google Sheet doit contenir exactement ces colonnes :
+Gmail n’autorise pas le mot de passe classique pour l’envoi SMTP.
 
-```text
+- Activer la validation en deux étapes : https://myaccount.google.com/security  
+- Générer un mot de passe d’application : https://myaccount.google.com/apppasswords  
+- Choisir “Mail” et copier le code généré
+
+À mettre dans `.env` comme `APP_PASSWORD`.
+
+---
+
+## 2. Google Sheet (structure)
+
+Créer un Google Sheet avec :
+
+
+
 Email | Name | Entreprise | Sex | Langue | Envoyé
-````
 
-### Valeurs attendues
+id="sheet1"
 
-* Sex : `M` / `F`
-* Langue : `FR` / `EN`
-* Envoyé : `Yes` / `No`
-
----
-
-## 2. Nettoyage automatique des données
-
-Avant chaque exécution :
-
-### Déduplication intelligente
-
-* 1 seul email conservé par personne
-* Si doublon :
-
-  * priorité à `Envoyé = Yes`
-  * sinon conservation d’une seule ligne `No`
-* suppression automatique des doublons inutiles dans le Google Sheet
+### Valeurs attendues :
+- Sex : `M` / `F`
+- Langue : `FR` / `EN`
+- Envoyé : `No` / `Yes`
 
 ---
 
-## 3. Sélection des leads
+## 3. Google Cloud — credentials
 
-Seules les lignes sont prises en compte si :
-
-* toutes les colonnes sont remplies
-* `Envoyé = No`
-* email non supprimé par la déduplication
-
----
-
-## 4. Gestion des CV (nouvelle fonctionnalité)
-
-L’application utilise **2 CV distincts** :
-
-* CV Français → utilisé pour `Langue = FR`
-* CV Anglais → utilisé pour `Langue = EN`
-
-Chaque email reçoit automatiquement le CV correspondant à sa langue.
+- Créer un projet : https://console.cloud.google.com/
+- Activer les APIs :
+  - https://console.cloud.google.com/apis/library/sheets.googleapis.com
+  - https://console.cloud.google.com/apis/library/drive.googleapis.com
+- Créer un service account : https://console.cloud.google.com/iam-admin/serviceaccounts
+- Générer une clé JSON (download)
+- Partager le Google Sheet avec l’email du service account (Editor)
 
 ---
 
-## 5. Accès Google Sheets
+## 4. Fichier `.env`
 
-### Service Account
 
-* Créer un service account dans Google Cloud
-* Télécharger le fichier `.json`
 
-### Partage du Google Sheet
+GMAIL_ADDRESS=[ton_email@gmail.com](mailto:ton_email@gmail.com)
+APP_PASSWORD=ton_app_password
 
-Partager le Google Sheet avec l’email du service account (`client_email`) avec rôle **Editor**.
+GOOGLE_SHEETS_ID=ton_sheet_id
+GOOGLE_CREDS_JSON=credentials.json
+
+id="env1"
 
 ---
 
-## 6. Installation des dépendances
+## 5. Installation
 
 ```bash
 pip install uv
 uv sync
-```
+````
 
 ---
 
-## 7. Configuration `.env`
+## 6. Lancement
 
-Créer un fichier `.env` :
-
-```env
-GMAIL_ADDRESS=votre.adresse@gmail.com
-APP_PASSWORD=votre_app_password
-
-GOOGLE_SHEETS_ID=your_google_sheet_id
-GOOGLE_CREDS_JSON=credentials.json
-```
-
----
-
-## 8. Lancement de l’application
-
-```bash
+```bash id="run1"
 uv run main.py
 ```
 
 ---
 
-## 9. Fonctionnement global
+## 7. Fonctionnement de l’application
 
-### Chargement des données
+### 1. Chargement des leads
 
-* lecture du Google Sheet
-* suppression des doublons
-* filtrage des leads `Envoyé = No`
+L’application lit automatiquement le Google Sheet et :
+
+* récupère uniquement les lignes avec `Envoyé = No`
+* ignore les lignes incomplètes
+* supprime les doublons (un email = une seule ligne conservée)
 
 ---
 
-### Génération des emails
+### 2. Upload des CV
+
+Avant de lancer l’envoi, tu dois uploader :
+
+* un CV français
+* un CV anglais
+
+Le système choisit automatiquement le bon CV selon la langue du lead :
+
+* FR → CV français
+* EN → CV anglais
+
+---
+
+### 3. Envoi des emails
 
 Pour chaque lead :
 
-* sujet aléatoire selon la langue
-* civilité automatique :
-
-  * FR → Mme / M.
-  * EN → Ms / Mr
-* contenu email personnalisé (texte fixe métier)
-* CV adapté à la langue
-* envoi via SMTP Gmail
+* un sujet est choisi aléatoirement selon la langue
+* un email personnalisé est généré
+* le CV correspondant est attaché
+* l’email est envoyé via Gmail
 
 ---
 
-### Rythme d’envoi
+### 4. Rythme d’envoi
 
-* envoi séquentiel
-* pause aléatoire entre chaque email :
-
-  * 45 à 90 secondes
-
----
-
-### Affichage du suivi
-
-Pendant l’envoi :
-
-* affichage du numéro d’envoi global : `i / total`
-* affichage de l’email en cours
-* affichage du temps de pause avant prochain envoi
+* les emails sont envoyés un par un
+* une pause aléatoire est appliquée entre chaque envoi (45 à 90 secondes)
+* l’interface affiche le temps d’attente avant chaque email
 
 ---
 
-### Mise à jour Google Sheet
+### 5. Suivi
+
+Pendant l’envoi tu vois :
+
+* le numéro d’envoi (`i / total`)
+* l’email en cours
+* le temps de pause restant
+
+---
+
+### 6. Mise à jour automatique
 
 Après chaque envoi :
 
-* `Envoyé : No → Yes`
+* la colonne `Envoyé` passe de `No` à `Yes`
 
 ---
 
-## 10. Interface Streamlit
+## 8. Personnalisation des emails
 
-Fonctionnalités :
+Tu peux modifier directement dans le code :
 
-* upload du CV FR
-* upload du CV EN
-* affichage des leads
-* masquage des leads
-* lancement envoi automatique
-* suivi en temps réel (progression + statut)
+* le sujet des emails
+* et surtout le contenu du message (body)
 
----
+Cela te permet d’adapter :
 
-## 11. Sécurité anti-erreur
-
-* suppression des doublons email
-* protection contre re-soumission manuelle
-* blocage des lignes incomplètes
-* protection contre envoi multiple du même email
+* ton positionnement
+* ton ton (plus formel / plus direct)
+* ton storytelling
+* ou des versions différentes selon les entreprises
 
 ---
 
-## 12. Arborescence du projet
+## 9. Utilisation (workflow utilisateur)
 
-```text
-email-sender/
-├── main.py
-├── pyproject.toml
-├── .env
-├── credentials.json
-└── README.md
+Une fois l’application lancée :
+
+1. Tu ouvres l’interface Streamlit
+2. Tu upload ton CV français et anglais
+3. Tu vérifies les leads affichés depuis Google Sheets
+4. Tu cliques sur “Lancer envoi automatique”
+5. L’application :
+
+   * envoie les emails un par un
+   * applique les pauses automatiquement
+   * met à jour le Google Sheet en temps réel
+
+Tu n’as plus rien à faire pendant l’exécution.
+
+---
+
+## 10. Sécurité
+
+Ne jamais versionner :
+
 ```
-
----
-
-## 13. Sécurité Git
-
-```gitignore
 .env
 credentials.json
 ```
 
 ---
 
-## 14. Dépannage
+## Résumé
 
-### Aucun email envoyé
-
-* vérifier `Envoyé = No`
-* vérifier que toutes les colonnes sont remplies
-
-### Doublons persistants
-
-* vérifier que `clean_duplicates()` est exécuté
-
-### Erreur Google Sheets
-
-* vérifier partage avec service account
-* vérifier `GOOGLE_SHEETS_ID`
-
-### Erreur Gmail SMTP
-
-* utiliser un mot de passe d’application Gmail
-
----
-
-## 15. Évolutions possibles
-
-* file d’envoi persistante (queue)
-* retry automatique des échecs
-* logs d’erreurs dans Google Sheet
-* dashboard CRM complet
-* segmentation avancée des leads
+* Envoi automatique depuis Google Sheets
+* CV dynamique selon langue
+* Anti-doublon intégré
+* Pause automatique entre emails
+* Suivi en temps réel
+* Personnalisation facile du message (body)
 
 ```
-
----
 ```
