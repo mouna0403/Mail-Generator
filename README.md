@@ -1,90 +1,76 @@
-# Email Sender V1
+````markdown
+# Email Sender V2 — Google Sheets Bulk Sender (Streamlit)
 
-Application Python simple permettant d'envoyer un email de candidature personnalisé avec une pièce jointe (CV) via Gmail.
+Application Streamlit permettant d’envoyer automatiquement des emails de candidature personnalisés à partir d’un Google Sheet, avec gestion de file d’attente, déduplication, mise à jour automatique du statut et envoi séquentiel contrôlé.
+
+---
 
 ## Prérequis
 
-* Python 3.10 ou supérieur
-* Un compte Gmail
-* Validation en deux étapes activée
-* Mot de passe d'application Gmail
+- Python 3.10+
+- Compte Gmail
+- Validation en deux étapes activée
+- Mot de passe d’application Gmail
+- Google Cloud Project avec :
+  - Google Sheets API activée
+  - Google Drive API activée
+- Service Account Google (fichier JSON)
 
 ---
 
-## 1. Cloner le dépôt
+## 1. Structure du Google Sheet
 
-```bash
-git clone https://github.com/votre-utilisateur/email-sender.git
-cd email-sender
-```
-
----
-
-## 2. Générer un mot de passe d'application Gmail
-
-Google n'autorise pas l'utilisation du mot de passe Gmail classique pour l'envoi SMTP.
-
-### Étapes
-
-1. Ouvrir [https://myaccount.google.com/security](https://myaccount.google.com/security)
-2. Activer la validation en deux étapes
-3. Ouvrir [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
-4. Choisir :
-
-   * Application : Mail
-   * Appareil : Autre
-5. Saisir un nom (par exemple `Email Sender`)
-6. Copier le mot de passe généré (16 caractères)
-
-Exemple affiché par Google :
+Le fichier doit contenir exactement ces colonnes :
 
 ```text
-abcd efgh ijkl mnop
-```
+Email | Name | Entreprise | Sex | Langue | Envoyé
+````
 
-À utiliser dans le fichier `.env` sans espaces :
+### Valeurs attendues
 
-```text
-abcdefghijklmnop
-```
+* Sex : `M` / `F`
+* Langue : `FR` / `EN`
+* Envoyé : `Yes` / `No`
 
 ---
 
-## 3. Installer `uv`
+## 2. Accès Google Sheets
+
+### Service Account
+
+* Créer un service account dans Google Cloud
+* Télécharger le fichier `.json`
+
+### Partage du Google Sheet
+
+Partager le Google Sheet avec l’email du service account (champ `client_email` du JSON) avec le rôle **Editor**.
+
+---
+
+## 3. Installation des dépendances
 
 ```bash
 pip install uv
-```
-
----
-
-## 4. Installer les dépendances
-
-```bash
 uv sync
 ```
 
 ---
 
-## 5. Configurer le fichier `.env`
+## 4. Configuration `.env`
 
-Créer un fichier `.env` à la racine du projet :
+Créer un fichier `.env` à la racine :
 
 ```env
 GMAIL_ADDRESS=votre.adresse@gmail.com
-APP_PASSWORD=votremotdepasseapplication
-```
+APP_PASSWORD=votre_app_password
 
-Exemple :
-
-```env
-GMAIL_ADDRESS=prenom.nom@gmail.com
-APP_PASSWORD=abcdefghijklmnop
+GOOGLE_SHEETS_ID=your_google_sheet_id
+GOOGLE_CREDS_JSON=credentials.json
 ```
 
 ---
 
-## 6. Lancer l'application
+## 5. Lancer l’application
 
 ```bash
 uv run main.py
@@ -92,74 +78,135 @@ uv run main.py
 
 ---
 
-## 7. Remplir les informations
+## 6. Fonctionnement global
 
-Dans l'interface Streamlit, renseigner :
+### Chargement des données
 
-* Nom du destinataire
-* Email du destinataire
-* Nom de l'entreprise
-* Sexe (`M` ou `F`)
-* Langue (`FR` ou `EN`)
-* CV au format PDF
+L’application lit automatiquement le Google Sheet et sélectionne uniquement les lignes :
 
-Puis cliquer sur **Envoyer**.
+* complètes (aucune colonne vide)
+* avec `Envoyé = No`
 
 ---
 
-## Fonctionnalités
+### Déduplication automatique
 
-* Personnalisation automatique du message
-* Support du français et de l'anglais
-* Civilité automatique :
+Avant affichage et envoi :
 
-  * Français : `Mme` / `M.`
-  * Anglais : `Ms` / `Mr`
-* Ajout automatique du CV en pièce jointe
+* si un email a déjà `Envoyé = Yes`
+* toutes les autres lignes associées avec `No` sont supprimées automatiquement
+
+Objectif : éviter tout double envoi accidentel.
 
 ---
 
-## Structure du projet
+### Envoi des emails
+
+Pour chaque lead :
+
+* génération du sujet aléatoire selon la langue
+* génération de la civilité :
+
+  * FR → Mme / M.
+  * EN → Ms / Mr
+* insertion du contenu personnalisé
+* ajout automatique du CV en pièce jointe
+* envoi via SMTP Gmail
+
+---
+
+### Contrôle du rythme d’envoi
+
+* envoi séquentiel
+* pause aléatoire entre chaque email :
+
+  * 45 à 90 secondes
+
+---
+
+### Mise à jour du Google Sheet
+
+Après chaque envoi :
+
+* `Envoyé` passe de `No` → `Yes`
+
+---
+
+## 7. Interface Streamlit
+
+Fonctionnalités disponibles :
+
+* upload du CV (une seule fois)
+* affichage des leads filtrés
+* masquage de la liste des leads
+* lancement de l’envoi automatique
+* suivi de progression en temps réel
+
+---
+
+## 8. Logique métier
+
+### Sélection des leads
+
+* uniquement lignes complètes
+* uniquement `Envoyé = No`
+
+### Sécurité anti-doublon
+
+* suppression des doublons historiques
+* protection contre ré-ajout manuel d’un contact déjà traité
+
+---
+
+## 9. Arborescence du projet
 
 ```text
 email-sender/
 ├── main.py
 ├── pyproject.toml
 ├── .env
+├── credentials.json
 └── README.md
 ```
 
 ---
 
-## Dépannage
+## 10. Sécurité
 
-### Erreur `SMTPAuthenticationError`
-
-Vérifier que :
-
-* la validation en deux étapes est activée ;
-* le mot de passe d'application est correct ;
-* le mot de passe dans `.env` ne contient pas d'espaces ;
-* l'adresse Gmail est correcte.
-
-### Le fichier `.env` n'est pas chargé
-
-Vérifier qu'il se trouve au même niveau que `main.py`.
-
----
-
-## Sécurité
-
-Ne jamais partager le fichier `.env`.
-
-Ajouter `.env` dans `.gitignore` :
+Ne jamais versionner :
 
 ```gitignore
 .env
+credentials.json
 ```
 
 ---
 
-## Licence
+## 11. Dépannage
 
-Usage personnel et éducatif.
+### Aucun email envoyé
+
+* vérifier `Envoyé = No`
+* vérifier colonnes complètes
+
+### Erreur Google Sheets
+
+* vérifier partage avec service account
+* vérifier `GOOGLE_SHEETS_ID`
+
+### Erreur Gmail SMTP
+
+* utiliser un mot de passe d’application Gmail (pas le mot de passe classique)
+
+---
+
+## 12. Évolutions possibles
+
+* bouton pause / reprise d’envoi
+* file d’envoi persistante (queue)
+* logs d’erreurs dans le Google Sheet
+* retry automatique en cas d’échec SMTP
+* dashboard CRM des candidatures
+
+```
+```
