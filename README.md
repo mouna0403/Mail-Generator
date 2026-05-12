@@ -1,7 +1,6 @@
-````markdown
 # Email Sender V2 — Google Sheets Bulk Sender (Streamlit)
 
-Application Streamlit permettant d’envoyer automatiquement des emails de candidature personnalisés à partir d’un Google Sheet, avec gestion de file d’attente, déduplication, mise à jour automatique du statut et envoi séquentiel contrôlé.
+Application Streamlit permettant d’envoyer automatiquement des emails de candidature personnalisés à partir d’un Google Sheet, avec gestion de file d’attente, déduplication avancée, suppression des doublons, gestion multi-CV (FR/EN), et envoi séquentiel contrôlé avec pause aléatoire.
 
 ---
 
@@ -20,7 +19,7 @@ Application Streamlit permettant d’envoyer automatiquement des emails de candi
 
 ## 1. Structure du Google Sheet
 
-Le fichier doit contenir exactement ces colonnes :
+Le Google Sheet doit contenir exactement ces colonnes :
 
 ```text
 Email | Name | Entreprise | Sex | Langue | Envoyé
@@ -34,7 +33,43 @@ Email | Name | Entreprise | Sex | Langue | Envoyé
 
 ---
 
-## 2. Accès Google Sheets
+## 2. Nettoyage automatique des données
+
+Avant chaque exécution :
+
+### Déduplication intelligente
+
+* 1 seul email conservé par personne
+* Si doublon :
+
+  * priorité à `Envoyé = Yes`
+  * sinon conservation d’une seule ligne `No`
+* suppression automatique des doublons inutiles dans le Google Sheet
+
+---
+
+## 3. Sélection des leads
+
+Seules les lignes sont prises en compte si :
+
+* toutes les colonnes sont remplies
+* `Envoyé = No`
+* email non supprimé par la déduplication
+
+---
+
+## 4. Gestion des CV (nouvelle fonctionnalité)
+
+L’application utilise **2 CV distincts** :
+
+* CV Français → utilisé pour `Langue = FR`
+* CV Anglais → utilisé pour `Langue = EN`
+
+Chaque email reçoit automatiquement le CV correspondant à sa langue.
+
+---
+
+## 5. Accès Google Sheets
 
 ### Service Account
 
@@ -43,11 +78,11 @@ Email | Name | Entreprise | Sex | Langue | Envoyé
 
 ### Partage du Google Sheet
 
-Partager le Google Sheet avec l’email du service account (champ `client_email` du JSON) avec le rôle **Editor**.
+Partager le Google Sheet avec l’email du service account (`client_email`) avec rôle **Editor**.
 
 ---
 
-## 3. Installation des dépendances
+## 6. Installation des dépendances
 
 ```bash
 pip install uv
@@ -56,9 +91,9 @@ uv sync
 
 ---
 
-## 4. Configuration `.env`
+## 7. Configuration `.env`
 
-Créer un fichier `.env` à la racine :
+Créer un fichier `.env` :
 
 ```env
 GMAIL_ADDRESS=votre.adresse@gmail.com
@@ -70,7 +105,7 @@ GOOGLE_CREDS_JSON=credentials.json
 
 ---
 
-## 5. Lancer l’application
+## 8. Lancement de l’application
 
 ```bash
 uv run main.py
@@ -78,44 +113,32 @@ uv run main.py
 
 ---
 
-## 6. Fonctionnement global
+## 9. Fonctionnement global
 
 ### Chargement des données
 
-L’application lit automatiquement le Google Sheet et sélectionne uniquement les lignes :
-
-* complètes (aucune colonne vide)
-* avec `Envoyé = No`
-
----
-
-### Déduplication automatique
-
-Avant affichage et envoi :
-
-* si un email a déjà `Envoyé = Yes`
-* toutes les autres lignes associées avec `No` sont supprimées automatiquement
-
-Objectif : éviter tout double envoi accidentel.
+* lecture du Google Sheet
+* suppression des doublons
+* filtrage des leads `Envoyé = No`
 
 ---
 
-### Envoi des emails
+### Génération des emails
 
 Pour chaque lead :
 
-* génération du sujet aléatoire selon la langue
-* génération de la civilité :
+* sujet aléatoire selon la langue
+* civilité automatique :
 
   * FR → Mme / M.
   * EN → Ms / Mr
-* insertion du contenu personnalisé
-* ajout automatique du CV en pièce jointe
+* contenu email personnalisé (texte fixe métier)
+* CV adapté à la langue
 * envoi via SMTP Gmail
 
 ---
 
-### Contrôle du rythme d’envoi
+### Rythme d’envoi
 
 * envoi séquentiel
 * pause aléatoire entre chaque email :
@@ -124,41 +147,47 @@ Pour chaque lead :
 
 ---
 
-### Mise à jour du Google Sheet
+### Affichage du suivi
+
+Pendant l’envoi :
+
+* affichage du numéro d’envoi global : `i / total`
+* affichage de l’email en cours
+* affichage du temps de pause avant prochain envoi
+
+---
+
+### Mise à jour Google Sheet
 
 Après chaque envoi :
 
-* `Envoyé` passe de `No` → `Yes`
+* `Envoyé : No → Yes`
 
 ---
 
-## 7. Interface Streamlit
+## 10. Interface Streamlit
 
-Fonctionnalités disponibles :
+Fonctionnalités :
 
-* upload du CV (une seule fois)
-* affichage des leads filtrés
-* masquage de la liste des leads
-* lancement de l’envoi automatique
-* suivi de progression en temps réel
-
----
-
-## 8. Logique métier
-
-### Sélection des leads
-
-* uniquement lignes complètes
-* uniquement `Envoyé = No`
-
-### Sécurité anti-doublon
-
-* suppression des doublons historiques
-* protection contre ré-ajout manuel d’un contact déjà traité
+* upload du CV FR
+* upload du CV EN
+* affichage des leads
+* masquage des leads
+* lancement envoi automatique
+* suivi en temps réel (progression + statut)
 
 ---
 
-## 9. Arborescence du projet
+## 11. Sécurité anti-erreur
+
+* suppression des doublons email
+* protection contre re-soumission manuelle
+* blocage des lignes incomplètes
+* protection contre envoi multiple du même email
+
+---
+
+## 12. Arborescence du projet
 
 ```text
 email-sender/
@@ -171,9 +200,7 @@ email-sender/
 
 ---
 
-## 10. Sécurité
-
-Ne jamais versionner :
+## 13. Sécurité Git
 
 ```gitignore
 .env
@@ -182,12 +209,16 @@ credentials.json
 
 ---
 
-## 11. Dépannage
+## 14. Dépannage
 
 ### Aucun email envoyé
 
 * vérifier `Envoyé = No`
-* vérifier colonnes complètes
+* vérifier que toutes les colonnes sont remplies
+
+### Doublons persistants
+
+* vérifier que `clean_duplicates()` est exécuté
 
 ### Erreur Google Sheets
 
@@ -196,17 +227,19 @@ credentials.json
 
 ### Erreur Gmail SMTP
 
-* utiliser un mot de passe d’application Gmail (pas le mot de passe classique)
+* utiliser un mot de passe d’application Gmail
 
 ---
 
-## 12. Évolutions possibles
+## 15. Évolutions possibles
 
-* bouton pause / reprise d’envoi
 * file d’envoi persistante (queue)
-* logs d’erreurs dans le Google Sheet
-* retry automatique en cas d’échec SMTP
-* dashboard CRM des candidatures
+* retry automatique des échecs
+* logs d’erreurs dans Google Sheet
+* dashboard CRM complet
+* segmentation avancée des leads
 
 ```
+
+---
 ```
