@@ -159,7 +159,8 @@ I am reaching out because I am interested in {company_name} and your work in dat
 
 I recently graduated from INSA Toulouse in applied mathematics and completed a data science apprenticeship at Decathlon, where I worked on predictive and generative AI use cases, covering data analysis, modeling, and production deployment of data pipelines (Airflow), using GCP and Databricks in a containerized environment (Docker).
 
-I am now looking to grow in the data field (Data Scientist / Data Analyst / Data Engineer). I am now looking to grow in the data field (Data Scientist / Data Analyst / Data Engineer). If you think my profile could match your team’s needs, I would be glad to discuss with you and possibly get your advice or recommendation when opportunities arise.
+I am now looking to grow in the data field (Data Scientist / Data Analyst / Data Engineer). If you think my profile could match your team’s needs, I would be glad to discuss with you and possibly get your advice or recommendation when opportunities arise.
+
 I am attaching my CV for more details on my background.  
 
 You can also explore my projects on GitHub ({github_link}), including an intelligent recommendation system and an intelligent document assistant that I continuously improve.
