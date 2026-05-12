@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "stone-fortress-474322-a4",
+  "private_key_id": "63de0e05d9d7d52afe1bcf3f1f9c691e644e36fd",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDDm8Z42rqTFzYG\nSimKSXVsYIpb4ECu0IdE7tz+Zi489jTAfjxJGfQv07D2OXrbFl/tNuVBPmDvhgtS\nsa7DBwszVn02IGEEvsjkIUVOlbpNaUy7OT2vRWEjPXtTIrjzfl4P+DZXL0NDW64J\n98muxY0jn1OjULhMU26j8w9p574KlHw5Xty2ZvgK4oG+oflF9lEkNfoRsVqt/dsL\nGki0dE1tca2+mXVCy+Ds0HJpHzu0TNQT1KO6vcjvVX0M/y4E10e7FF0KNRF9CPYt\nXrTZdb8y0KRtOq5BPNc/x9qP4A9b/xDMMHCY7CRkaZtgYEvoj5PxY6siKhJsv+GD\nTiSRf0FhAgMBAAECgf8v7Kg88EQaEm9bb0GACEiLTip6pOoA400rCZyivvTMBcgz\nsbKpcOAi3vNkk1yIKLbfQSf8UlydH3MCLPBkX1OX33nC/ig0sstryMJRW+UX4rZ+\nGc9yrpmyIGOU4whiZV6FcYN4Z4CN2df7f56t3U7HmTh1INriBEXTmIR1kM/RIsbw\niZWrHFuJZFa5BmMa/cZ52c2qAfDyDYdRAwFo8o2jc+8BXUvJFd2wuAdMnj60XY1K\nmslDSRj11GM69tBmMO0N9DfGx29QkBr3O40RtedqcGqHtxcJyiYQV4auPGzdr17y\n5GcewdRcsOC73r7lLQ3BkEfCVGHuK07DV4W5mFECgYEA5qZUn0K2T4oqPpkcGBL8\nsVKgd/o7hyegenGODi8D1SljM+wJIwcYIkQeB+AZ3H3u/nvZA6tb0mSGTF3VXVZ2\nrJqbT7lI9V/gRXFLElwDASNjt7d7WUUSfi/ixZoZpi+RZr6EfLhvxonoUOb2Iltj\ndGw/yeLR1P9VOJH/P2/p8vkCgYEA2RuCFH79x+H6oRQe1rm5iQmKVsuz9fFiPDIA\n7ediVaFLbw95Xx6YRp1ydpbTC/kSaoNBxfnsmxMUjkklnFqgWaLQZJ/LylVvZOe1\n+3XSIHav/nk2db1sBs4LqhPe4Em+iE0HI6sBkmXV0eFTzBvwEglenzzp3lDlrgeV\nY+koc6kCgYEAlhy4xHIprziv58/EThLFbS7mi09LwNnUgvw2xRpqNyhZjShYhfiP\nB3YnyV5b1noLuoqmIdI7z4FnOnpza+zjDdENteRUDIaasvdaMZe6yNncg2wiFmZy\n87d8srhpaxRYYHMsTPPIo4GLtmOq2494+gOdvGonwKVxNIEoi4Pt0hkCgYEAn8l5\nIXCdg0E0Xt0aHVsvzEXzRRJDbt2rOTZsLKxBWViO1jyDTZiM5lv25IT46zTzcuUL\nwZPBqhiO5nG7dqnUnmQQEB7ztATRKWjILTx33GC+AwJfLKSvHwsC1rgtLtHXoyVd\n/chcLc05Y3D9ZZmiRQQUWgpQ7ciIYl8+efweQ5ECgYAnLVfjcqGlgeQ/KbEYzygY\n2pqmTGk14z3bLqD9zKL2qjWraI7O0PN0r+gFL0m4QLzitp/S6DUlFzSDYkZ97RP/\nFIk+js3nw94xCiLXNf0xI8vYc2d0CuiAcN9zFX97ZT1hQRmbxrMHXqhsiRduuyLI\npuhOR/B+k/GEhb1BwH2mLA==\n-----END PRIVATE KEY-----\n",
+  "client_email": "gsheet-cds@stone-fortress-474322-a4.iam.gserviceaccount.com",
+  "client_id": "111216869554339283973",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/gsheet-cds%40stone-fortress-474322-a4.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
