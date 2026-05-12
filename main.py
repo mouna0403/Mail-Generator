@@ -52,73 +52,54 @@ def get_sheet():
 
 
 def is_complete_row(row):
-    """
-    Vérifie que toutes les colonnes obligatoires sont remplies.
-    Colonnes attendues :
-    Email | Name | Entreprise | Sex | Langue | Envoyé
-    """
-    required_columns = [
-        "Email",
-        "Name",
-        "Entreprise",
-        "Sex",
-        "Langue",
-        "Envoyé",
-    ]
+    required = ["Email", "Name", "Entreprise", "Sex", "Langue", "Envoyé"]
 
-    for column in required_columns:
-        value = row.get(column, "")
-        if value is None or str(value).strip() == "":
+    for c in required:
+        if row.get(c) is None or str(row.get(c)).strip() == "":
             return False
-
     return True
 
 
-def clean_duplicate_pending_rows(sheet):
+def clean_duplicates(sheet):
     """
-    Si une même adresse email apparaît plusieurs fois et qu'au moins une ligne
-    possède déjà Envoyé = Yes, alors toutes les autres lignes avec Envoyé = No
-    sont automatiquement supprimées.
+    Garde une seule ligne par email :
+    - priorité à Envoyé = Yes
+    - sinon garde une seule ligne No
     """
     data = sheet.get_all_records()
 
-    # Emails ayant déjà reçu un email
-    sent_emails = set()
+    best = {}
+    to_delete = []
 
-    for row in data:
+    for i, row in enumerate(data, start=2):
         email = str(row.get("Email", "")).strip().lower()
-        sent_status = str(row.get("Envoyé", "")).strip().lower()
+        status = str(row.get("Envoyé", "")).strip().lower()
 
-        if email and sent_status == "yes":
-            sent_emails.add(email)
+        if not email:
+            to_delete.append(i)
+            continue
 
-    # Lignes à supprimer
-    rows_to_delete = []
+        if email not in best:
+            best[email] = (i, status)
+        else:
+            prev_i, prev_status = best[email]
 
-    for i, row in enumerate(data, start=2):  # ligne 1 = header
-        email = str(row.get("Email", "")).strip().lower()
-        sent_status = str(row.get("Envoyé", "")).strip().lower()
+            if status == "yes" and prev_status != "yes":
+                to_delete.append(prev_i)
+                best[email] = (i, status)
+            else:
+                to_delete.append(i)
 
-        if email in sent_emails and sent_status == "no":
-            rows_to_delete.append(i)
-
-    # Suppression de bas en haut
-    for row_index in reversed(rows_to_delete):
-        sheet.delete_rows(row_index)
-
-    return len(rows_to_delete)
+    for r in reversed(to_delete):
+        sheet.delete_rows(r)
 
 
 def fetch_pending_rows(sheet):
-    """
-    Sélectionne uniquement les lignes :
-    - complètement remplies
-    - avec Envoyé = No
-    """
     data = sheet.get_all_records()
-    pending = []
+    rows = []
 
-    for i, row in enumerate(data, start=2):  # ligne 1 = header
+    for i, row in enumerate(data, start=2):
+
         if not is_complete_row(row):
             continue
 
@@ -126,36 +107,26 @@ def fetch_pending_rows(sheet):
             continue
 
         row["_row"] = i
-        pending.append(row)
+        rows.append(row)
 
-    return pending
+    return rows
 
 
 def mark_sent(sheet, row_index):
-    # Colonne 6 = "Envoyé"
     sheet.update_cell(row_index, 6, "Yes")
 
 
-# ================= EMAIL HELPERS =================
+# ================= EMAIL =================
 
-def get_salutation(language, gender):
-    language = str(language).strip().upper()
-    gender = str(gender).strip().upper()
-
-    if language == "FR":
-        return "Mme" if gender == "F" else "M."
-    else:
-        return "Ms" if gender == "F" else "Mr"
+def get_salutation(lang, sex):
+    return "Mme" if str(sex).upper() == "F" else "M."
 
 
-def get_subject(language):
-    language = str(language).strip().upper()
+def get_subject(lang):
+    return random.choice(SUBJECTS_FR if str(lang).upper() == "FR" else SUBJECTS_EN)
 
-    if language == "FR":
-        return random.choice(SUBJECTS_FR)
 
-    return random.choice(SUBJECTS_EN)
-
+# ====== TON BODY EXACT ======
 
 def build_body(language, salutation, recipient_name, company_name):
     language = str(language).strip().upper()
@@ -194,20 +165,20 @@ Maïmouna
 """
 
 
-# ================= EMAIL SENDER =================
+def send_email(to_email, name, company, sex, lang,
+               cv_fr_bytes, cv_fr_name,
+               cv_en_bytes, cv_en_name):
 
-def send_email(
-    to_email,
-    name,
-    company,
-    sex,
-    lang,
-    cv_bytes,
-    cv_filename,
-):
     salutation = get_salutation(lang, sex)
     subject = get_subject(lang)
     body = build_body(lang, salutation, name, company)
+
+    if str(lang).upper() == "FR":
+        cv_bytes = cv_fr_bytes
+        cv_name = cv_fr_name
+    else:
+        cv_bytes = cv_en_bytes
+        cv_name = cv_en_name
 
     msg = MIMEMultipart()
     msg["From"] = GMAIL_ADDRESS
@@ -216,11 +187,8 @@ def send_email(
 
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
-    # Pièce jointe CV
-    attachment = MIMEApplication(cv_bytes, Name=cv_filename)
-    attachment["Content-Disposition"] = (
-        f'attachment; filename="{cv_filename}"'
-    )
+    attachment = MIMEApplication(cv_bytes, Name=cv_name)
+    attachment["Content-Disposition"] = f'attachment; filename="{cv_name}"'
     msg.attach(attachment)
 
     with smtplib.SMTP("smtp.gmail.com", 587) as server:
@@ -229,104 +197,79 @@ def send_email(
         server.send_message(msg)
 
 
-# ================= STREAMLIT UI =================
+# ================= STREAMLIT =================
 
-st.title("Google Sheet Email Sender")
+st.title("Google Sheet Email Sender V2")
 
-# État d'affichage des leads
-if "show_leads" not in st.session_state:
-    st.session_state.show_leads = False
-
-# Upload du CV
-cv_file = st.file_uploader("CV (PDF)", type=["pdf"])
-
-# Connexion au Google Sheet
 sheet = get_sheet()
+clean_duplicates(sheet)
 
-# Nettoyage automatique des doublons :
-# si un email a déjà un "Yes", toutes les lignes "No" du même email sont supprimées.
-deleted_count = clean_duplicate_pending_rows(sheet)
+cv_fr_file = st.file_uploader("CV Français (PDF)", type=["pdf"])
+cv_en_file = st.file_uploader("CV Anglais (PDF)", type=["pdf"])
 
-if deleted_count > 0:
-    st.warning(
-        f"{deleted_count} ligne(s) en doublon ont été supprimées "
-        f"car un email avait déjà été envoyé."
-    )
+if "show" not in st.session_state:
+    st.session_state.show = False
 
-# Boutons Afficher / Masquer
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("Afficher les leads à envoyer"):
-        st.session_state.show_leads = True
+    if st.button("Afficher les leads"):
+        st.session_state.show = True
 
 with col2:
-    if st.button("Masquer les leads"):
-        st.session_state.show_leads = False
+    if st.button("Masquer"):
+        st.session_state.show = False
 
-# Affichage des leads
-if st.session_state.show_leads:
+if st.session_state.show:
     rows = fetch_pending_rows(sheet)
+    st.write(f"{len(rows)} leads en attente")
+    for r in rows:
+        st.write(r)
 
-    st.write(f"{len(rows)} emails en attente")
-
-    for row in rows:
-        st.write({
-            "Email": row["Email"],
-            "Name": row["Name"],
-            "Entreprise": row["Entreprise"],
-            "Sex": row["Sex"],
-            "Langue": row["Langue"],
-            "Envoyé": row["Envoyé"],
-        })
-
-# Envoi automatique
 if st.button("Lancer envoi automatique"):
 
-    if cv_file is None:
-        st.error("Veuillez uploader votre CV avant de lancer l'envoi.")
+    if cv_fr_file is None or cv_en_file is None:
+        st.error("Uploader les deux CV")
         st.stop()
 
-    cv_bytes = cv_file.read()
-    cv_filename = cv_file.name
+    cv_fr_bytes = cv_fr_file.read()
+    cv_fr_name = cv_fr_file.name
+
+    cv_en_bytes = cv_en_file.read()
+    cv_en_name = cv_en_file.name
 
     rows = fetch_pending_rows(sheet)
 
     if not rows:
-        st.info("Aucun email valide à envoyer.")
+        st.info("Aucun email")
         st.stop()
 
-    st.write(f"Envoi de {len(rows)} emails")
-
+    total = len(rows)
     progress = st.progress(0)
     status = st.empty()
 
-    for index, row in enumerate(rows, start=1):
+    for i, row in enumerate(rows, start=1):
+
+        status.write(f"Envoi {i}/{total} → {row['Email']}")
+
         send_email(
-            to_email=row["Email"],
-            name=row["Name"],
-            company=row["Entreprise"],
-            sex=row["Sex"],
-            lang=row["Langue"],
-            cv_bytes=cv_bytes,
-            cv_filename=cv_filename,
+            row["Email"],
+            row["Name"],
+            row["Entreprise"],
+            row["Sex"],
+            row["Langue"],
+            cv_fr_bytes,
+            cv_fr_name,
+            cv_en_bytes,
+            cv_en_name,
         )
 
-        # Marquer comme envoyé
         mark_sent(sheet, row["_row"])
+        progress.progress(i / total)
 
-        progress.progress(index / len(rows))
-        status.write(
-            f"Envoyé à {row['Email']} ({index}/{len(rows)})"
-        )
-
-        # Pause aléatoire entre 45 et 90 secondes
-        if index < len(rows):
+        if i < total:
             wait_time = random.randint(45, 90)
-            st.write(f"Pause de {wait_time} secondes...")
+            status.write(f"Envoyé {i}/{total} → pause {wait_time}s")
             time.sleep(wait_time)
 
-    # Masquer automatiquement les leads
-    st.session_state.show_leads = False
-
-    st.success("Envoi terminé avec succès.")
+    st.success("Terminé")
