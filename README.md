@@ -1,165 +1,208 @@
-# Email Sender V1
+# Email Sender V2 — Google Sheets Bulk Sender (Streamlit)
 
-Application Python simple permettant d'envoyer un email de candidature personnalisé avec une pièce jointe (CV) via Gmail.
+Application Streamlit permettant d’envoyer automatiquement des emails de candidature à partir d’un Google Sheet.  
+Elle gère l’envoi en série, la déduplication, le suivi des statuts et l’utilisation de deux CV (FR / EN).
+
+---
 
 ## Prérequis
 
-* Python 3.10 ou supérieur
-* Un compte Gmail
-* Validation en deux étapes activée
-* Mot de passe d'application Gmail
+- Python 3.10+
+- Compte Gmail
+- Validation en deux étapes activée
+- Mot de passe d’application Gmail
+- Compte Google (Google Sheets + Google Cloud)
 
 ---
 
-## 1. Cloner le dépôt
+## 1. Gmail — mot de passe d’application
 
-```bash
-git clone https://github.com/votre-utilisateur/email-sender.git
-cd email-sender
-```
+Gmail n’autorise pas le mot de passe classique pour l’envoi SMTP.
 
----
+- Activer la validation en deux étapes : https://myaccount.google.com/security  
+- Générer un mot de passe d’application : https://myaccount.google.com/apppasswords  
+- Choisir “Mail” et copier le code généré
 
-## 2. Générer un mot de passe d'application Gmail
-
-Google n'autorise pas l'utilisation du mot de passe Gmail classique pour l'envoi SMTP.
-
-### Étapes
-
-1. Ouvrir [https://myaccount.google.com/security](https://myaccount.google.com/security)
-2. Activer la validation en deux étapes
-3. Ouvrir [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
-4. Choisir :
-
-   * Application : Mail
-   * Appareil : Autre
-5. Saisir un nom (par exemple `Email Sender`)
-6. Copier le mot de passe généré (16 caractères)
-
-Exemple affiché par Google :
-
-```text
-abcd efgh ijkl mnop
-```
-
-À utiliser dans le fichier `.env` sans espaces :
-
-```text
-abcdefghijklmnop
-```
+À mettre dans `.env` comme `APP_PASSWORD`.
 
 ---
 
-## 3. Installer `uv`
+## 2. Google Sheet (structure)
+
+Créer un Google Sheet avec :
+
+
+
+Email | Name | Entreprise | Sex | Langue | Envoyé
+
+id="sheet1"
+
+### Valeurs attendues :
+- Sex : `M` / `F`
+- Langue : `FR` / `EN`
+- Envoyé : `No` / `Yes`
+
+---
+
+## 3. Google Cloud — credentials
+
+- Créer un projet : https://console.cloud.google.com/
+- Activer les APIs :
+  - https://console.cloud.google.com/apis/library/sheets.googleapis.com
+  - https://console.cloud.google.com/apis/library/drive.googleapis.com
+- Créer un service account : https://console.cloud.google.com/iam-admin/serviceaccounts
+- Générer une clé JSON (download)
+- Partager le Google Sheet avec l’email du service account (Editor)
+
+---
+
+## 4. Fichier `.env`
+
+
+
+GMAIL_ADDRESS=[ton_email@gmail.com](mailto:ton_email@gmail.com)
+APP_PASSWORD=ton_app_password
+
+GOOGLE_SHEETS_ID=ton_sheet_id
+GOOGLE_CREDS_JSON=credentials.json
+
+id="env1"
+
+---
+
+## 5. Installation
 
 ```bash
 pip install uv
-```
-
----
-
-## 4. Installer les dépendances
-
-```bash
 uv sync
-```
+````
 
 ---
 
-## 5. Configurer le fichier `.env`
+## 6. Lancement
 
-Créer un fichier `.env` à la racine du projet :
-
-```env
-GMAIL_ADDRESS=votre.adresse@gmail.com
-APP_PASSWORD=votremotdepasseapplication
-```
-
-Exemple :
-
-```env
-GMAIL_ADDRESS=prenom.nom@gmail.com
-APP_PASSWORD=abcdefghijklmnop
-```
-
----
-
-## 6. Lancer l'application
-
-```bash
+```bash id="run1"
 uv run main.py
 ```
 
 ---
 
-## 7. Remplir les informations
+## 7. Fonctionnement de l’application
 
-Dans l'interface Streamlit, renseigner :
+### 1. Chargement des leads
 
-* Nom du destinataire
-* Email du destinataire
-* Nom de l'entreprise
-* Sexe (`M` ou `F`)
-* Langue (`FR` ou `EN`)
-* CV au format PDF
+L’application lit automatiquement le Google Sheet et :
 
-Puis cliquer sur **Envoyer**.
+* récupère uniquement les lignes avec `Envoyé = No`
+* ignore les lignes incomplètes
+* supprime les doublons (un email = une seule ligne conservée)
 
 ---
 
-## Fonctionnalités
+### 2. Upload des CV
 
-* Personnalisation automatique du message
-* Support du français et de l'anglais
-* Civilité automatique :
+Avant de lancer l’envoi, tu dois uploader :
 
-  * Français : `Mme` / `M.`
-  * Anglais : `Ms` / `Mr`
-* Ajout automatique du CV en pièce jointe
+* un CV français
+* un CV anglais
+
+Le système choisit automatiquement le bon CV selon la langue du lead :
+
+* FR → CV français
+* EN → CV anglais
 
 ---
 
-## Structure du projet
+### 3. Envoi des emails
 
-```text
-email-sender/
-├── main.py
-├── pyproject.toml
-├── .env
-└── README.md
+Pour chaque lead :
+
+* un sujet est choisi aléatoirement selon la langue
+* un email personnalisé est généré
+* le CV correspondant est attaché
+* l’email est envoyé via Gmail
+
+---
+
+### 4. Rythme d’envoi
+
+* les emails sont envoyés un par un
+* une pause aléatoire est appliquée entre chaque envoi (45 à 90 secondes)
+* l’interface affiche le temps d’attente avant chaque email
+
+---
+
+### 5. Suivi
+
+Pendant l’envoi tu vois :
+
+* le numéro d’envoi (`i / total`)
+* l’email en cours
+* le temps de pause restant
+
+---
+
+### 6. Mise à jour automatique
+
+Après chaque envoi :
+
+* la colonne `Envoyé` passe de `No` à `Yes`
+
+---
+
+## 8. Personnalisation des emails
+
+Tu peux modifier directement dans le code :
+
+* le sujet des emails
+* et surtout le contenu du message (body)
+
+Cela te permet d’adapter :
+
+* ton positionnement
+* ton ton (plus formel / plus direct)
+* ton storytelling
+* ou des versions différentes selon les entreprises
+
+---
+
+## 9. Utilisation (workflow utilisateur)
+
+Une fois l’application lancée :
+
+1. Tu ouvres l’interface Streamlit
+2. Tu upload ton CV français et anglais
+3. Tu vérifies les leads affichés depuis Google Sheets
+4. Tu cliques sur “Lancer envoi automatique”
+5. L’application :
+
+   * envoie les emails un par un
+   * applique les pauses automatiquement
+   * met à jour le Google Sheet en temps réel
+
+Tu n’as plus rien à faire pendant l’exécution.
+
+---
+
+## 10. Sécurité
+
+Ne jamais versionner :
+
 ```
-
----
-
-## Dépannage
-
-### Erreur `SMTPAuthenticationError`
-
-Vérifier que :
-
-* la validation en deux étapes est activée ;
-* le mot de passe d'application est correct ;
-* le mot de passe dans `.env` ne contient pas d'espaces ;
-* l'adresse Gmail est correcte.
-
-### Le fichier `.env` n'est pas chargé
-
-Vérifier qu'il se trouve au même niveau que `main.py`.
-
----
-
-## Sécurité
-
-Ne jamais partager le fichier `.env`.
-
-Ajouter `.env` dans `.gitignore` :
-
-```gitignore
 .env
+credentials.json
 ```
 
 ---
 
-## Licence
+## Résumé
 
-Usage personnel et éducatif.
+* Envoi automatique depuis Google Sheets
+* CV dynamique selon langue
+* Anti-doublon intégré
+* Pause automatique entre emails
+* Suivi en temps réel
+* Personnalisation facile du message (body)
+
+```
+```
