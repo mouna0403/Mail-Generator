@@ -131,6 +131,8 @@ def get_subject(lang):
 def build_body(language, salutation, recipient_name, company_name):
     language = str(language).strip().upper()
 
+    github_link = os.getenv("GITHUB_LINK")
+
     if language == "FR":
         return f"""Bonjour {salutation} {recipient_name},
 
@@ -138,15 +140,17 @@ Je me permets de vous contacter car je m’intéresse à {company_name} et à vo
 
 Je suis récemment diplômée de l’INSA Toulouse en mathématiques appliquées et j’ai réalisé une alternance en data science chez Decathlon, où j’ai travaillé sur des cas d’usage en IA prédictive et générative, en couvrant l’analyse de données, la modélisation ainsi que la mise en production de pipelines data (Airflow), avec déploiement sur GCP et Databricks, en environnement conteneurisé (Docker).
 
-Je souhaite aujourd’hui évoluer vers un poste dans la data (Data Scientist / Data Analyst / Data Engineer). Si vous pensez que mon profil pourrait correspondre à l’esprit et aux attentes de vos équipes, je serais ravie de pouvoir échanger avec vous et, le moment venu, de bénéficier de vos conseils, voire d’une recommandation lorsqu’une opportunité se présentera.
+Je souhaite aujourd’hui évoluer vers un poste dans la data (Data Scientist / Data Analyst / Data Engineer). Si mon profil peut correspondre à vos besoins, je serais ravie d’échanger avec vous et de bénéficier de vos retours ou conseils sur votre domaine.
 
-Je peux bien sûr vous transmettre mon CV si besoin.
+Je me permets de vous joindre mon CV pour plus de détails sur mon parcours.  
+Vous pouvez également consulter mes projets sur mon GitHub ({github_link}), notamment une application de système de recommandation intelligent et un assistant documentaire intelligent en constante amélioration.
 
 Merci par avance pour votre temps.
 
 Bien cordialement,
 Maïmouna
 """
+
     else:
         return f"""Hello {salutation} {recipient_name},
 
@@ -154,16 +158,16 @@ I am reaching out because I am interested in {company_name} and your work in dat
 
 I recently graduated from INSA Toulouse in applied mathematics and completed a data science apprenticeship at Decathlon, where I worked on predictive and generative AI use cases, covering data analysis, modeling, and production deployment of data pipelines (Airflow), using GCP and Databricks in a containerized environment (Docker).
 
-I am now looking to grow in the data field (Data Scientist / Data Analyst / Data Engineer). If you think my profile could match your team’s needs, I would be glad to discuss with you and possibly get your advice or recommendation when opportunities arise.
+I am now looking to grow in the data field (Data Scientist / Data Analyst / Data Engineer). If my profile aligns with your needs, I would be glad to discuss with you and get your insights or advice on your work.
 
-I can also share my CV if needed.
+I am attaching my CV for more details on my background.  
+You can also explore my projects on GitHub ({github_link}), including an intelligent recommendation system and an intelligent document assistant that I continuously improve.
 
 Thank you for your time.
 
 Best regards,
 Maïmouna
 """
-
 
 def send_email(to_email, name, company, sex, lang,
                cv_fr_bytes, cv_fr_name,
