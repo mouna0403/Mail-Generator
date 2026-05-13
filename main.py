@@ -36,6 +36,7 @@ SUBJECTS_EN = [
 
 # ================= GOOGLE SHEETS =================
 
+@st.cache_resource
 def get_sheet():
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
@@ -61,11 +62,6 @@ def is_complete_row(row):
 
 
 def clean_duplicates(sheet):
-    """
-    Garde une seule ligne par email :
-    - priorité à Envoyé = Yes
-    - sinon garde une seule ligne No
-    """
     data = sheet.get_all_records()
 
     best = {}
@@ -76,7 +72,6 @@ def clean_duplicates(sheet):
         status = str(row.get("Envoyé", "")).strip().lower()
 
         if not email:
-            to_delete.append(i)
             continue
 
         if email not in best:
@@ -126,27 +121,25 @@ def get_subject(lang):
     return random.choice(SUBJECTS_FR if str(lang).upper() == "FR" else SUBJECTS_EN)
 
 
-# ====== TON BODY EXACT ======
+# ====== TON BODY EXACT (INCHANGÉ) ======
 
 def build_body(language, salutation, recipient_name, company_name):
     language = str(language).strip().upper()
-
-    github_link = os.getenv("GITHUB_LINK")
 
     if language == "FR":
         return f"""Bonjour {salutation} {recipient_name},
 
 Je me permets de vous contacter car je m’intéresse à {company_name} et à vos activités autour de la data et de l’IA. Votre parcours a retenu mon attention et j’aimerais en apprendre davantage sur votre expérience ainsi que sur les missions menées.
 
-Je suis récemment diplômée de l’INSA Toulouse en mathématiques appliquées et j’ai réalisé une alternance en data science chez Decathlon, où j’ai travaillé sur des cas d’usage en IA prédictive et générative, en couvrant l’analyse de données, la modélisation ainsi que la mise en production de pipelines data (Airflow), avec déploiement sur GCP et Databricks, en environnement conteneurisé (Docker).
+Ingénieure en mathématiques appliquées, je suis récemment diplômée de l’INSA Toulouse et j’ai réalisé une alternance en data science chez Decathlon, où j’ai travaillé sur des cas d’usage en IA prédictive et générative, en couvrant l’analyse de données, la modélisation ainsi que la mise en production de pipelines data (Airflow), avec déploiement sur GCP et Databricks, en environnement conteneurisé (Docker).
 
 Je souhaite aujourd’hui évoluer vers un poste dans la data (Data Scientist / Data Analyst / Data Engineer). Si vous pensez que mon profil pourrait correspondre à l’esprit et aux attentes de vos équipes, je serais ravie de pouvoir échanger avec vous et, le moment venu, de bénéficier de vos conseils, voire d’une recommandation lorsqu’une opportunité se présentera.
 
 Je me permets de vous joindre mon CV pour plus de détails sur mon parcours.  
 
-Vous pouvez également consulter mes projets sur mon GitHub ({github_link}), notamment une application de système de recommandation intelligent et un assistant documentaire intelligent en constante amélioration.
+Vous pouvez également consulter mon GitHub (lien dans mon CV), qui présente mon portfolio Data & AI avec des applications de bout en bout développées en Python et Streamlit, notamment un système de recommandation intelligent et un assistant documentaire, enrichies et améliorées au fil des versions.
 
-Merci par avance pour votre temps.
+Je vous remercie par avance pour votre temps.
 
 Bien cordialement,
 Maïmouna
@@ -157,19 +150,20 @@ Maïmouna
 
 I am reaching out because I am interested in {company_name} and your work in data and AI. Your background caught my attention and I would love to learn more about your experience and the missions you are working on.
 
-I recently graduated from INSA Toulouse in applied mathematics and completed a data science apprenticeship at Decathlon, where I worked on predictive and generative AI use cases, covering data analysis, modeling, and production deployment of data pipelines (Airflow), using GCP and Databricks in a containerized environment (Docker).
+I recently graduated from INSA Toulouse in as an applied mathematics engineer and completed a data science apprenticeship at Decathlon, where I worked on predictive and generative AI use cases, covering data analysis, modeling, and production deployment of data pipelines (Airflow), using GCP and Databricks in a containerized environment (Docker).
 
 I am now looking to grow in the data field (Data Scientist / Data Analyst / Data Engineer). If you think my profile could match your team’s needs, I would be glad to discuss with you and possibly get your advice or recommendation when opportunities arise.
 
 I am attaching my CV for more details on my background.  
 
-You can also explore my projects on GitHub ({github_link}), including an intelligent recommendation system and an intelligent document assistant that I continuously improve.
+You can also view my GitHub (link in my resume), which showcases my Data & AI portfolio with end-to-end applications developed in Python and Streamlit, including an intelligent recommendation system and a document assistant, continuously improved and refined across iterations.
 
-Thank you for your time.
+Thank you in advance for your time.
 
 Best regards,
 Maïmouna
 """
+
 
 def send_email(to_email, name, company, sex, lang,
                cv_fr_bytes, cv_fr_name,
