@@ -2,10 +2,11 @@ import os
 import time
 import random
 import smtplib
+import json
 import streamlit as st
 import gspread
-import json
 
+from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 
 from email.mime.multipart import MIMEMultipart
@@ -13,62 +14,116 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 
 
-# ================= SECURITY =================
+load_dotenv()
 
-PASSWORD = st.secrets["APP_UI_PASSWORD"]
+
+def get_secret(key, default=None):
+    if key in st.secrets:
+        return st.secrets[key]
+    return os.getenv(key, default)
+
+
+# ================= PASSWORD PROTECTION =================
+
+UI_PASSWORD = get_secret("APP_UI_PASSWORD")
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    pwd = st.text_input("Mot de passe", type="password")
+    password_input = st.text_input("Mot de passe", type="password")
 
-    if pwd and pwd == PASSWORD:
-        st.session_state.authenticated = True
-        st.rerun()
+    if password_input:
+        if password_input == UI_PASSWORD:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Access denied")
+            st.stop()
     else:
         st.stop()
 
 
-# ================= SECRETS =================
+# ================= CONFIG =================
 
-GMAIL_ADDRESS = st.secrets["GMAIL_ADDRESS"]
-APP_PASSWORD = st.secrets["APP_PASSWORD"]
-SHEET_ID = st.secrets["GOOGLE_SHEETS_ID"]
+GMAIL_ADDRESS = get_secret("GMAIL_ADDRESS")
+APP_PASSWORD = get_secret("APP_PASSWORD")
+SHEET_ID = get_secret("GOOGLE_SHEETS_ID")
 
-SUBJECTS_FR = st.secrets["SUBJECTS_FR"].split(";")
-SUBJECTS_EN = st.secrets["SUBJECTS_EN"].split(";")
+SUBJECTS_FR = [
+    s.strip()
+    for s in get_secret("SUBJECTS_FR", "").split(";")
+    if s.strip()
+]
 
-BODY_FR = st.secrets["BODY_FR"]
-BODY_EN = st.secrets["BODY_EN"]
+SUBJECTS_EN = [
+    s.strip()
+    for s in get_secret("SUBJECTS_EN", "").split(";")
+    if s.strip()
+]
 
-CREDS_FILE = st.secrets["GOOGLE_CREDS_JSON"]
+BODY_FR = get_secret("BODY_FR")
+BODY_EN = get_secret("BODY_EN")
+
+GOOGLE_CREDS_JSON = get_secret("GOOGLE_CREDS_JSON")
 
 
-# ================= GOOGLE SHEETS AUTH =================
+# ================= GOOGLE SHEETS =================
 
+@st.cache_resource
 def get_sheet():
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
 
-    creds_dict = json.loads(st.secrets["GOOGLE_CREDS_JSON"])
+    creds_info = json.loads(GOOGLE_CREDS_JSON)
 
     creds = Credentials.from_service_account_info(
-        creds_dict,
+        creds_info,
         scopes=scopes
     )
 
     client = gspread.authorize(creds)
-    return client.open_by_key(st.secrets["GOOGLE_SHEETS_ID"]).sheet1
 
+    return client.open_by_key(SHEET_ID).sheet1
 
-# ================= LOGIC =================
 
 def is_complete_row(row):
     required = ["Email", "Name", "Entreprise", "Sex", "Langue", "Envoyé"]
-    return all(str(row.get(c, "")).strip() != "" for c in required)
+
+    for c in required:
+        if row.get(c) is None or str(row.get(c)).strip() == "":
+            return False
+    return True
+
+
+def clean_duplicates(sheet):
+    data = sheet.get_all_records()
+
+    best = {}
+    to_delete = []
+
+    for i, row in enumerate(data, start=2):
+        email = str(row.get("Email", "")).strip().lower()
+        status = str(row.get("Envoyé", "")).strip().lower()
+
+        if not email:
+            continue
+
+        if email not in best:
+            best[email] = (i, status)
+        else:
+            prev_i, prev_status = best[email]
+
+            if status == "yes" and prev_status != "yes":
+                to_delete.append(prev_i)
+                best[email] = (i, status)
+            else:
+                to_delete.append(i)
+
+    for r in reversed(to_delete):
+        sheet.delete_rows(r)
 
 
 def fetch_pending_rows(sheet):
@@ -76,6 +131,7 @@ def fetch_pending_rows(sheet):
     rows = []
 
     for i, row in enumerate(data, start=2):
+
         if not is_complete_row(row):
             continue
 
@@ -99,7 +155,9 @@ def get_salutation(lang, sex):
 
 
 def get_subject(lang):
-    return random.choice(SUBJECTS_FR if str(lang).upper() == "FR" else SUBJECTS_EN)
+    return random.choice(
+        SUBJECTS_FR if str(lang).upper() == "FR" else SUBJECTS_EN
+    )
 
 
 def build_body(language, salutation, recipient_name, company_name):
@@ -151,14 +209,34 @@ def send_email(to_email, name, company, sex, lang,
         server.send_message(msg)
 
 
-# ================= STREAMLIT UI =================
+# ================= STREAMLIT =================
 
 st.title("Google Sheet Email Sender V2")
 
 sheet = get_sheet()
+clean_duplicates(sheet)
 
 cv_fr_file = st.file_uploader("CV Français (PDF)", type=["pdf"])
 cv_en_file = st.file_uploader("CV Anglais (PDF)", type=["pdf"])
+
+if "show" not in st.session_state:
+    st.session_state.show = False
+
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("Afficher les leads"):
+        st.session_state.show = True
+
+with col2:
+    if st.button("Masquer"):
+        st.session_state.show = False
+
+if st.session_state.show:
+    rows = fetch_pending_rows(sheet)
+    st.write(f"{len(rows)} leads en attente")
+    for r in rows:
+        st.write(r)
 
 if st.button("Lancer envoi automatique"):
 
@@ -167,7 +245,10 @@ if st.button("Lancer envoi automatique"):
         st.stop()
 
     cv_fr_bytes = cv_fr_file.read()
+    cv_fr_name = cv_fr_file.name
+
     cv_en_bytes = cv_en_file.read()
+    cv_en_name = cv_en_file.name
 
     rows = fetch_pending_rows(sheet)
 
@@ -177,8 +258,11 @@ if st.button("Lancer envoi automatique"):
 
     total = len(rows)
     progress = st.progress(0)
+    status = st.empty()
 
     for i, row in enumerate(rows, start=1):
+
+        status.write(f"Envoi {i}/{total} → {row['Email']}")
 
         send_email(
             row["Email"],
@@ -187,15 +271,17 @@ if st.button("Lancer envoi automatique"):
             row["Sex"],
             row["Langue"],
             cv_fr_bytes,
-            cv_fr_file.name,
+            cv_fr_name,
             cv_en_bytes,
-            cv_en_file.name,
+            cv_en_name,
         )
 
         mark_sent(sheet, row["_row"])
         progress.progress(i / total)
 
         if i < total:
-            time.sleep(random.randint(45, 90))
+            wait_time = random.randint(45, 90)
+            status.write(f"Envoyé {i}/{total} → pause {wait_time}s")
+            time.sleep(wait_time)
 
     st.success("Terminé")

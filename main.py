@@ -5,6 +5,7 @@ import smtplib
 import streamlit as st
 import gspread
 
+from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 
 from email.mime.multipart import MIMEMultipart
@@ -12,35 +13,18 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 
 
-# ================= SECURITY (AJOUT UNIQUEMENT ICI) =================
+load_dotenv()
 
-PASSWORD = st.secrets["APP_UI_PASSWORD"]
+GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
+APP_PASSWORD = os.getenv("APP_PASSWORD")
+SHEET_ID = os.getenv("GOOGLE_SHEETS_ID")
+CREDS_FILE = os.getenv("GOOGLE_CREDS_JSON")
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+SUBJECTS_FR = [s.strip() for s in os.getenv("SUBJECTS_FR", "").split(";") if s.strip()]
+SUBJECTS_EN = [s.strip() for s in os.getenv("SUBJECTS_EN", "").split(";") if s.strip()]
 
-if not st.session_state.authenticated:
-    pwd = st.text_input("Mot de passe", type="password")
-
-    if pwd and pwd == PASSWORD:
-        st.session_state.authenticated = True
-        st.rerun()
-    else:
-        st.stop()
-
-
-# ================= LOAD SECRETS =================
-
-GMAIL_ADDRESS = st.secrets["GMAIL_ADDRESS"]
-APP_PASSWORD = st.secrets["APP_PASSWORD"]
-SHEET_ID = st.secrets["GOOGLE_SHEETS_ID"]
-CREDS_FILE = st.secrets["GOOGLE_CREDS_JSON"]
-
-SUBJECTS_FR = st.secrets["SUBJECTS_FR"].split(";")
-SUBJECTS_EN = st.secrets["SUBJECTS_EN"].split(";")
-
-BODY_FR = st.secrets["BODY_FR"]
-BODY_EN = st.secrets["BODY_EN"]
+BODY_FR = os.getenv("BODY_FR")
+BODY_EN = os.getenv("BODY_EN")
 
 
 # ================= GOOGLE SHEETS =================
