@@ -2,11 +2,12 @@
 name = "gsheet-email-sender"
 version = "1.0.0"
 description = "Streamlit app to send emails from Google Sheets"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 
 dependencies = [
     "streamlit==1.37.0",
     "python-dotenv==1.0.1",
     "gspread==6.1.2",
     "google-auth==2.33.0",
+    "pillow==10.4.0"
 ]

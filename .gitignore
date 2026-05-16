@@ -1,2 +1,18 @@
+# secrets & credentials
 .env
+credentials.json
 *.json
+
+# streamlit local config
+.streamlit/secrets.toml
+
+# python cache
+__pycache__/
+*.pyc
+
+# venv
+venv/
+.env/
+
+# OS
+.DS_Store
