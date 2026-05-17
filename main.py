@@ -107,7 +107,13 @@ def mark_sent(sheet, row_index):
 # ================= EMAIL =================
 
 def get_salutation(lang, sex):
-    return "Mme" if str(sex).upper() == "F" else "M."
+    lang = str(lang).strip().upper()
+    sex = str(sex).strip().upper()
+
+    if lang == "FR":
+        return "Mme" if sex == "F" else "M."
+    else:
+        return "Ms." if sex == "F" else "Mr."
 
 
 def get_subject(lang):
