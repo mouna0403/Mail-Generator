@@ -187,12 +187,12 @@ st.markdown("""
     <style>
         /* Style général */
         .stApp {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
         
         /* Container principal */
         .main-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
             padding: 2rem;
             border-radius: 15px;
             margin-bottom: 2rem;
@@ -230,15 +230,15 @@ st.markdown("""
         .card-title {
             font-size: 1.3rem;
             font-weight: 600;
-            color: #667eea;
+            color: #2c3e50;
             margin-bottom: 1rem;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid #3498db;
             padding-bottom: 0.5rem;
         }
         
         /* Boutons personnalisés */
         .stButton > button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
             color: white;
             border: none;
             padding: 0.6rem 1.5rem;
@@ -251,12 +251,12 @@ st.markdown("""
         
         .stButton > button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 15px rgba(44, 62, 80, 0.4);
         }
         
         /* Métriques */
         .metric-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
             color: white;
             padding: 1rem;
             border-radius: 10px;
@@ -289,22 +289,35 @@ st.markdown("""
             padding: 1rem;
             border-radius: 10px;
             border-left: 4px solid #28a745;
+            margin: 1rem 0;
+        }
+        
+        /* Message d'erreur */
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #dc3545;
+            margin: 1rem 0;
+        }
+        
+        /* Message info */
+        .info-message {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #17a2b8;
+            margin: 1rem 0;
         }
         
         /* Uploader */
         .upload-container {
-            border: 2px dashed #667eea;
+            border: 2px dashed #3498db;
             border-radius: 10px;
             padding: 1rem;
             text-align: center;
-        }
-        
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 2rem;
-            color: white;
-            margin-top: 2rem;
         }
         
         /* Inputs */
@@ -316,6 +329,41 @@ st.markdown("""
         /* Dataframe */
         .dataframe {
             font-size: 0.9rem;
+        }
+        
+        /* État terminé */
+        .terminated-message {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            margin: 1rem 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        /* Texte de statut */
+        .status-text {
+            font-weight: 500;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+        
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -345,7 +393,7 @@ if not st.session_state.auth:
                 st.session_state.auth = True
                 st.rerun()
             else:
-                st.error("❌ Mot de passe incorrect")
+                st.markdown('<div class="error-message">❌ Mot de passe incorrect</div>', unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
@@ -431,7 +479,7 @@ if st.session_state.show:
             })
         st.dataframe(display_rows, use_container_width=True)
     else:
-        st.info("✨ Aucun lead en attente d'envoi")
+        st.markdown('<div class="info-message">✨ Aucun lead en attente d\'envoi</div>', unsafe_allow_html=True)
 
 # Section d'envoi
 st.markdown("### 🚀 Envoi des emails")
@@ -439,7 +487,7 @@ st.markdown("### 🚀 Envoi des emails")
 if st.button("▶️ Lancer l'envoi automatique", use_container_width=True):
     
     if cv_fr_file is None or cv_en_file is None:
-        st.error("⚠️ Veuillez télécharger les deux CV (Français et Anglais) avant de lancer l'envoi")
+        st.markdown('<div class="error-message">⚠️ Veuillez télécharger les deux CV (Français et Anglais) avant de lancer l\'envoi</div>', unsafe_allow_html=True)
         st.stop()
     
     cv_fr_bytes = cv_fr_file.read()
@@ -451,7 +499,7 @@ if st.button("▶️ Lancer l'envoi automatique", use_container_width=True):
     rows = fetch_pending_rows(sheet)
     
     if not rows:
-        st.info("ℹ️ Aucun email à envoyer")
+        st.markdown('<div class="info-message">ℹ️ Aucun email à envoyer</div>', unsafe_allow_html=True)
         st.stop()
     
     total = len(rows)
@@ -469,7 +517,7 @@ if st.button("▶️ Lancer l'envoi automatique", use_container_width=True):
     for i, row in enumerate(rows, start=1):
         
         with log_container:
-            st.markdown(f"🔄 **Envoi en cours...** ({i}/{total}) → `{row['Email']}`")
+            st.markdown(f'<div class="status-info">🔄 Envoi en cours... ({i}/{total}) → {row["Email"]}</div>', unsafe_allow_html=True)
         
         try:
             send_email(
@@ -488,32 +536,24 @@ if st.button("▶️ Lancer l'envoi automatique", use_container_width=True):
             success_count += 1
             
             progress_bar.progress(i / total)
-            status_text.markdown(f"✅ **Envoyé** ({i}/{total}) → {row['Email']} - {row['Name']}")
+            status_text.markdown(f'<div class="status-success">✅ Envoyé ({i}/{total}) → {row["Email"]} - {row["Name"]}</div>', unsafe_allow_html=True)
             
         except Exception as e:
-            status_text.markdown(f"❌ **Erreur** ({i}/{total}) → {row['Email']} : {str(e)}")
+            status_text.markdown(f'<div class="status-error">❌ Erreur ({i}/{total}) → {row["Email"]} : {str(e)}</div>', unsafe_allow_html=True)
         
         if i < total:
             wait_time = random.randint(45, 90)
-            status_text.markdown(f"⏱️ **Pause** de {wait_time} secondes avant le prochain envoi...")
+            status_text.markdown(f'<div class="status-info">⏱️ Pause de {wait_time} secondes avant le prochain envoi...</div>', unsafe_allow_html=True)
             time.sleep(wait_time)
     
-    # Message de succès final
+    # Message de fin "Terminé" après tous les envois
     st.markdown(f"""
-        <div class="success-message">
-            ✅ Envoi terminé avec succès !<br>
-            📧 {success_count} email(s) envoyé(s) sur {total}
+        <div class="terminated-message">
+            ✅ TERMINÉ !<br>
+            📧 {success_count} email(s) envoyé(s) avec succès sur {total}
         </div>
     """, unsafe_allow_html=True)
     
     # Option pour rafraîchir l'affichage
     if st.button("🔄 Rafraîchir", use_container_width=True):
         st.rerun()
-
-# Pied de page
-st.markdown("""
-    <div class="footer">
-        <p>© 2024 SendPro - Solution professionnelle d'envoi d'emails</p>
-        <p style="font-size: 0.8rem;">Taux d'envoi: 45-90 secondes entre chaque email pour une délivrabilité optimale</p>
-    </div>
-""", unsafe_allow_html=True)
