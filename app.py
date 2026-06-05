@@ -174,90 +174,346 @@ def send_email(to_email, name, company, sex, lang,
         server.send_message(msg)
 
 
-st.title("Google Sheet Email Sender V2")
+# Configuration de la page
+st.set_page_config(
+    page_title="SendPro - Envoi d'emails personnalisés",
+    page_icon="📧",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
+# CSS personnalisé pour un design professionnel
+st.markdown("""
+    <style>
+        /* Style général */
+        .stApp {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        /* Container principal */
+        .main-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .main-header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .main-header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+        }
+        
+        /* Cartes */
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+        
+        /* Boutons personnalisés */
+        .stButton > button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-size: 1rem;
+        }
+        
+        .stButton > button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Métriques */
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            margin: 0.5rem 0;
+        }
+        
+        .metric-number {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        /* Zone de progression */
+        .progress-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+        
+        /* Message de succès */
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+        }
+        
+        /* Uploader */
+        .upload-container {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: white;
+            margin-top: 2rem;
+        }
+        
+        /* Inputs */
+        .stTextInput > div > div > input {
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        /* Dataframe */
+        .dataframe {
+            font-size: 0.9rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# En-tête principal
+st.markdown("""
+    <div class="main-header">
+        <h1>📧 SendPro</h1>
+        <p>Solution professionnelle d'envoi d'emails personnalisés</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# Gestion de l'authentification
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
 if not st.session_state.auth:
-    pwd = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if pwd == APP_UI_PASSWORD:
-            st.session_state.auth = True
-            st.rerun()
-        else:
-            st.error("Wrong password")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("""
+            <div class="card">
+                <div class="card-title">🔐 Accès sécurisé</div>
+        """, unsafe_allow_html=True)
+        pwd = st.text_input("Mot de passe", type="password", placeholder="Entrez votre mot de passe")
+        if st.button("Se connecter", use_container_width=True):
+            if pwd == APP_UI_PASSWORD:
+                st.session_state.auth = True
+                st.rerun()
+            else:
+                st.error("❌ Mot de passe incorrect")
+        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
+# Contenu principal après authentification
 sheet = get_sheet()
 clean_duplicates(sheet)
 
-cv_fr_file = st.file_uploader("CV Français (PDF)", type=["pdf"])
-cv_en_file = st.file_uploader("CV Anglais (PDF)", type=["pdf"])
-
-if "show" not in st.session_state:
-    st.session_state.show = False
-
+# Deux colonnes pour la section CV
+st.markdown("### 📎 Téléchargement des CV")
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("Afficher les leads"):
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown("#### 🇫🇷 CV Français")
+        cv_fr_file = st.file_uploader("Format PDF uniquement", type=["pdf"], key="cv_fr")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+with col2:
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown("#### 🇬🇧 CV Anglais")
+        cv_en_file = st.file_uploader("Format PDF uniquement", type=["pdf"], key="cv_en")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# Section des leads
+if "show" not in st.session_state:
+    st.session_state.show = False
+
+st.markdown("### 📊 Gestion des leads")
+col1, col2, col3 = st.columns([1, 1, 2])
+
+with col1:
+    if st.button("📋 Afficher les leads", use_container_width=True):
         st.session_state.show = True
 
 with col2:
-    if st.button("Masquer"):
+    if st.button("🙈 Masquer", use_container_width=True):
         st.session_state.show = False
 
 if st.session_state.show:
     rows = fetch_pending_rows(sheet)
-    st.write(f"{len(rows)} leads en attente")
-    for r in rows:
-        st.write(r)
+    
+    # Métriques
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-number">{len(rows)}</div>
+                <div class="metric-label">Leads en attente</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        total_leads = len(sheet.get_all_records())
+        st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-number">{total_leads}</div>
+                <div class="metric-label">Total des leads</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        sent_leads = total_leads - len(rows)
+        st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-number">{sent_leads}</div>
+                <div class="metric-label">Emails envoyés</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Affichage des leads dans un tableau stylisé
+    if rows:
+        st.markdown("#### 📋 Détail des leads à contacter")
+        display_rows = []
+        for r in rows:
+            display_rows.append({
+                "Email": r["Email"],
+                "Nom": r["Name"],
+                "Entreprise": r["Entreprise"],
+                "Sexe": "Féminin" if r["Sex"] == "F" else "Masculin",
+                "Langue": r["Langue"]
+            })
+        st.dataframe(display_rows, use_container_width=True)
+    else:
+        st.info("✨ Aucun lead en attente d'envoi")
 
-if st.button("Lancer envoi automatique"):
+# Section d'envoi
+st.markdown("### 🚀 Envoi des emails")
 
+if st.button("▶️ Lancer l'envoi automatique", use_container_width=True):
+    
     if cv_fr_file is None or cv_en_file is None:
-        st.error("Uploader les deux CV")
+        st.error("⚠️ Veuillez télécharger les deux CV (Français et Anglais) avant de lancer l'envoi")
         st.stop()
-
+    
     cv_fr_bytes = cv_fr_file.read()
     cv_fr_name = cv_fr_file.name
-
+    
     cv_en_bytes = cv_en_file.read()
     cv_en_name = cv_en_file.name
-
+    
     rows = fetch_pending_rows(sheet)
-
+    
     if not rows:
-        st.info("Aucun email")
+        st.info("ℹ️ Aucun email à envoyer")
         st.stop()
-
+    
     total = len(rows)
-    progress = st.progress(0)
-    status = st.empty()
-
+    
+    # Affichage de la progression
+    st.markdown("#### 📊 Progression de l'envoi")
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    # Container pour les logs
+    log_container = st.container()
+    
+    success_count = 0
+    
     for i, row in enumerate(rows, start=1):
-
-        status.write(f"Envoi {i}/{total} → {row['Email']}")
-
-        send_email(
-            row["Email"],
-            row["Name"],
-            row["Entreprise"],
-            row["Sex"],
-            row["Langue"],
-            cv_fr_bytes,
-            cv_fr_name,
-            cv_en_bytes,
-            cv_en_name,
-        )
-
-        mark_sent(sheet, row["_row"])
-        progress.progress(i / total)
-
+        
+        with log_container:
+            st.markdown(f"🔄 **Envoi en cours...** ({i}/{total}) → `{row['Email']}`")
+        
+        try:
+            send_email(
+                row["Email"],
+                row["Name"],
+                row["Entreprise"],
+                row["Sex"],
+                row["Langue"],
+                cv_fr_bytes,
+                cv_fr_name,
+                cv_en_bytes,
+                cv_en_name,
+            )
+            
+            mark_sent(sheet, row["_row"])
+            success_count += 1
+            
+            progress_bar.progress(i / total)
+            status_text.markdown(f"✅ **Envoyé** ({i}/{total}) → {row['Email']} - {row['Name']}")
+            
+        except Exception as e:
+            status_text.markdown(f"❌ **Erreur** ({i}/{total}) → {row['Email']} : {str(e)}")
+        
         if i < total:
             wait_time = random.randint(45, 90)
-            status.write(f"Envoyé {i}/{total} → pause {wait_time}s")
+            status_text.markdown(f"⏱️ **Pause** de {wait_time} secondes avant le prochain envoi...")
             time.sleep(wait_time)
+    
+    # Message de succès final
+    st.markdown(f"""
+        <div class="success-message">
+            ✅ Envoi terminé avec succès !<br>
+            📧 {success_count} email(s) envoyé(s) sur {total}
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Option pour rafraîchir l'affichage
+    if st.button("🔄 Rafraîchir", use_container_width=True):
+        st.rerun()
 
-    st.success("Terminé")
+# Pied de page
+st.markdown("""
+    <div class="footer">
+        <p>© 2024 SendPro - Solution professionnelle d'envoi d'emails</p>
+        <p style="font-size: 0.8rem;">Taux d'envoi: 45-90 secondes entre chaque email pour une délivrabilité optimale</p>
+    </div>
+""", unsafe_allow_html=True)
