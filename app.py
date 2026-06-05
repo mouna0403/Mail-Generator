@@ -2,9 +2,9 @@ import os
 import time
 import random
 import smtplib
-import json
 import streamlit as st
 import gspread
+import re
 
 from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
@@ -13,59 +13,27 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 
-
 load_dotenv()
 
+GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
+APP_PASSWORD = os.getenv("APP_PASSWORD")
+SHEET_ID = os.getenv("GOOGLE_SHEETS_ID")
+CREDS_FILE = os.getenv("GOOGLE_CREDS_JSON")
 
-def get_secret(key, default=None):
-    if key in st.secrets:
-        return st.secrets[key]
-    return os.getenv(key, default)
+SUBJECTS_FR = [s.strip() for s in os.getenv("SUBJECTS_FR", "").split(";") if s.strip()]
+SUBJECTS_EN = [s.strip() for s in os.getenv("SUBJECTS_EN", "").split(";") if s.strip()]
 
-
-# ================= PASSWORD PROTECTION =================
-
-UI_PASSWORD = get_secret("APP_UI_PASSWORD")
-
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-if not st.session_state.authenticated:
-    password_input = st.text_input("Mot de passe", type="password")
-
-    if password_input:
-        if password_input == UI_PASSWORD:
-            st.session_state.authenticated = True
-            st.rerun()
-        else:
-            st.error("Access denied")
-            st.stop()
-    else:
-        st.stop()
+BODY_FR = os.getenv("BODY_FR")
+BODY_EN = os.getenv("BODY_EN")
 
 
-# ================= CONFIG =================
+# ================= TRANSFORMATION TEXTE =================
 
-GMAIL_ADDRESS = get_secret("GMAIL_ADDRESS")
-APP_PASSWORD = get_secret("APP_PASSWORD")
-SHEET_ID = get_secret("GOOGLE_SHEETS_ID")
-
-SUBJECTS_FR = [
-    s.strip()
-    for s in get_secret("SUBJECTS_FR", "").split(";")
-    if s.strip()
-]
-
-SUBJECTS_EN = [
-    s.strip()
-    for s in get_secret("SUBJECTS_EN", "").split(";")
-    if s.strip()
-]
-
-BODY_FR = get_secret("BODY_FR")
-BODY_EN = get_secret("BODY_EN")
-
-GOOGLE_CREDS_JSON = get_secret("GOOGLE_CREDS_JSON")
+def markdown_to_html(text: str) -> str:
+    text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
+    text = text.replace("\n\n", "<br><br>")
+    text = text.replace("\n", "<br>")
+    return text
 
 
 # ================= GOOGLE SHEETS =================
@@ -77,13 +45,10 @@ def get_sheet():
         "https://www.googleapis.com/auth/drive",
     ]
 
-    creds_info = json.loads(GOOGLE_CREDS_JSON)
-
-    creds = Credentials.from_service_account_info(
-        creds_info,
+    creds = Credentials.from_service_account_file(
+        CREDS_FILE,
         scopes=scopes
     )
-
     client = gspread.authorize(creds)
 
     return client.open_by_key(SHEET_ID).sheet1
@@ -161,9 +126,7 @@ def get_salutation(lang, sex):
 
 
 def get_subject(lang):
-    return random.choice(
-        SUBJECTS_FR if str(lang).upper() == "FR" else SUBJECTS_EN
-    )
+    return random.choice(SUBJECTS_FR if str(lang).upper() == "FR" else SUBJECTS_EN)
 
 
 def build_body(language, salutation, recipient_name, company_name):
@@ -191,6 +154,8 @@ def send_email(to_email, name, company, sex, lang,
     subject = get_subject(lang)
     body = build_body(lang, salutation, name, company)
 
+    body = markdown_to_html(body)
+
     if str(lang).upper() == "FR":
         cv_bytes = cv_fr_bytes
         cv_name = cv_fr_name
@@ -198,12 +163,12 @@ def send_email(to_email, name, company, sex, lang,
         cv_bytes = cv_en_bytes
         cv_name = cv_en_name
 
-    msg = MIMEMultipart()
+    msg = MIMEMultipart("alternative")
     msg["From"] = GMAIL_ADDRESS
     msg["To"] = to_email
     msg["Subject"] = subject
 
-    msg.attach(MIMEText(body, "plain", "utf-8"))
+    msg.attach(MIMEText(body, "html", "utf-8"))
 
     attachment = MIMEApplication(cv_bytes, Name=cv_name)
     attachment["Content-Disposition"] = f'attachment; filename="{cv_name}"'
