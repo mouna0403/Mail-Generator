@@ -4,6 +4,7 @@ import random
 import smtplib
 import streamlit as st
 import gspread
+import json
 import re
 
 from dotenv import load_dotenv
@@ -13,12 +14,15 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 
+
 load_dotenv()
 
 GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
 APP_PASSWORD = os.getenv("APP_PASSWORD")
 SHEET_ID = os.getenv("GOOGLE_SHEETS_ID")
-CREDS_FILE = os.getenv("GOOGLE_CREDS_JSON")
+
+# IMPORTANT : ici c'est du JSON en texte brut (Streamlit secrets)
+GOOGLE_CREDS_JSON = os.getenv("GOOGLE_CREDS_JSON")
 
 SUBJECTS_FR = [s.strip() for s in os.getenv("SUBJECTS_FR", "").split(";") if s.strip()]
 SUBJECTS_EN = [s.strip() for s in os.getenv("SUBJECTS_EN", "").split(";") if s.strip()]
@@ -27,7 +31,7 @@ BODY_FR = os.getenv("BODY_FR")
 BODY_EN = os.getenv("BODY_EN")
 
 
-# ================= TRANSFORMATION TEXTE =================
+# ================= TEXTE =================
 
 def markdown_to_html(text: str) -> str:
     text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
@@ -45,7 +49,8 @@ def get_sheet():
         "https://www.googleapis.com/auth/drive",
     ]
 
-    creds_info = json.loads(os.getenv("GOOGLE_CREDS_JSON"))
+    # CORRECTION UNIQUEMENT ICI
+    creds_info = json.loads(GOOGLE_CREDS_JSON)
 
     creds = Credentials.from_service_account_info(
         creds_info,
