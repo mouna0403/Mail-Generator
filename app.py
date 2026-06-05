@@ -20,8 +20,6 @@ load_dotenv()
 GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
 APP_PASSWORD = os.getenv("APP_PASSWORD")
 SHEET_ID = os.getenv("GOOGLE_SHEETS_ID")
-
-# IMPORTANT : ici c'est du JSON en texte brut (Streamlit secrets)
 GOOGLE_CREDS_JSON = os.getenv("GOOGLE_CREDS_JSON")
 
 SUBJECTS_FR = [s.strip() for s in os.getenv("SUBJECTS_FR", "").split(";") if s.strip()]
@@ -31,8 +29,6 @@ BODY_FR = os.getenv("BODY_FR")
 BODY_EN = os.getenv("BODY_EN")
 
 
-# ================= TEXTE =================
-
 def markdown_to_html(text: str) -> str:
     text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
     text = text.replace("\n\n", "<br><br>")
@@ -40,31 +36,20 @@ def markdown_to_html(text: str) -> str:
     return text
 
 
-# ================= GOOGLE SHEETS =================
-
 @st.cache_resource
 def get_sheet():
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
-
-    # CORRECTION UNIQUEMENT ICI
     creds_info = json.loads(GOOGLE_CREDS_JSON)
-
-    creds = Credentials.from_service_account_info(
-        creds_info,
-        scopes=scopes
-    )
-
+    creds = Credentials.from_service_account_info(creds_info, scopes=scopes)
     client = gspread.authorize(creds)
-
     return client.open_by_key(SHEET_ID).sheet1
 
 
 def is_complete_row(row):
     required = ["Email", "Name", "Entreprise", "Sex", "Langue", "Envoyé"]
-
     for c in required:
         if row.get(c) is None or str(row.get(c)).strip() == "":
             return False
@@ -73,28 +58,22 @@ def is_complete_row(row):
 
 def clean_duplicates(sheet):
     data = sheet.get_all_records()
-
     best = {}
     to_delete = []
-
     for i, row in enumerate(data, start=2):
         email = str(row.get("Email", "")).strip().lower()
         status = str(row.get("Envoyé", "")).strip().lower()
-
         if not email:
             continue
-
         if email not in best:
             best[email] = (i, status)
         else:
             prev_i, prev_status = best[email]
-
             if status == "yes" and prev_status != "yes":
                 to_delete.append(prev_i)
                 best[email] = (i, status)
             else:
                 to_delete.append(i)
-
     for r in reversed(to_delete):
         sheet.delete_rows(r)
 
@@ -102,18 +81,13 @@ def clean_duplicates(sheet):
 def fetch_pending_rows(sheet):
     data = sheet.get_all_records()
     rows = []
-
     for i, row in enumerate(data, start=2):
-
         if not is_complete_row(row):
             continue
-
         if str(row["Envoyé"]).strip().lower() != "no":
             continue
-
         row["_row"] = i
         rows.append(row)
-
     return rows
 
 
@@ -121,12 +95,9 @@ def mark_sent(sheet, row_index):
     sheet.update_cell(row_index, 6, "Yes")
 
 
-# ================= EMAIL =================
-
 def get_salutation(lang, sex):
     lang = str(lang).strip().upper()
     sex = str(sex).strip().upper()
-
     if lang == "FR":
         return "Mme" if sex == "F" else "M."
     else:
@@ -139,7 +110,6 @@ def get_subject(lang):
 
 def build_body(language, salutation, recipient_name, company_name):
     language = str(language).strip().upper()
-
     if language == "FR":
         return BODY_FR.format(
             salutation=salutation,
@@ -157,11 +127,9 @@ def build_body(language, salutation, recipient_name, company_name):
 def send_email(to_email, name, company, sex, lang,
                cv_fr_bytes, cv_fr_name,
                cv_en_bytes, cv_en_name):
-
     salutation = get_salutation(lang, sex)
     subject = get_subject(lang)
     body = build_body(lang, salutation, name, company)
-
     body = markdown_to_html(body)
 
     if str(lang).upper() == "FR":
@@ -175,7 +143,6 @@ def send_email(to_email, name, company, sex, lang,
     msg["From"] = GMAIL_ADDRESS
     msg["To"] = to_email
     msg["Subject"] = subject
-
     msg.attach(MIMEText(body, "html", "utf-8"))
 
     attachment = MIMEApplication(cv_bytes, Name=cv_name)
@@ -188,51 +155,339 @@ def send_email(to_email, name, company, sex, lang,
         server.send_message(msg)
 
 
-# ================= STREAMLIT =================
+st.set_page_config(
+    page_title="Envoi Automatique · CV",
+    page_icon="✉️",
+    layout="centered",
+)
 
-st.title("Google Sheet Email Sender V2")
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'DM Sans', sans-serif;
+}
+
+.stApp {
+    background: #0d0d0f;
+    color: #e8e6e1;
+}
+
+section[data-testid="stSidebar"] {
+    display: none;
+}
+
+.block-container {
+    max-width: 720px;
+    padding: 3rem 2rem 4rem 2rem;
+}
+
+h1, h2, h3 {
+    font-family: 'Syne', sans-serif;
+}
+
+.app-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #222;
+}
+
+.app-header .badge {
+    display: inline-block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #6ee7b7;
+    background: rgba(110,231,183,0.08);
+    border: 1px solid rgba(110,231,183,0.2);
+    border-radius: 100px;
+    padding: 4px 14px;
+    margin-bottom: 1rem;
+}
+
+.app-header h1 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #f0ede8;
+    line-height: 1.1;
+    margin: 0.4rem 0 0.6rem;
+    letter-spacing: -0.03em;
+}
+
+.app-header p {
+    color: #666;
+    font-size: 0.95rem;
+    font-weight: 300;
+    margin: 0;
+}
+
+.section-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 0.8rem;
+    margin-top: 2.2rem;
+}
+
+.card {
+    background: #131316;
+    border: 1px solid #1e1e23;
+    border-radius: 16px;
+    padding: 1.6rem 1.8rem;
+    margin-bottom: 1rem;
+}
+
+.stat-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+}
+
+.stat-box {
+    flex: 1;
+    background: #0a0a0c;
+    border: 1px solid #1a1a1f;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    text-align: center;
+}
+
+.stat-box .value {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #6ee7b7;
+    line-height: 1;
+}
+
+.stat-box .label {
+    font-size: 0.72rem;
+    color: #555;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.lead-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #1a1a1f;
+    font-size: 0.88rem;
+}
+
+.lead-item:last-child {
+    border-bottom: none;
+}
+
+.lead-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6ee7b7;
+    flex-shrink: 0;
+}
+
+.lead-email {
+    color: #e8e6e1;
+    flex: 1;
+    font-weight: 400;
+}
+
+.lead-meta {
+    color: #444;
+    font-size: 0.78rem;
+}
+
+.lang-badge {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+}
+
+.lang-fr {
+    background: rgba(96,165,250,0.1);
+    color: #60a5fa;
+    border: 1px solid rgba(96,165,250,0.2);
+}
+
+.lang-en {
+    background: rgba(251,191,36,0.08);
+    color: #fbbf24;
+    border: 1px solid rgba(251,191,36,0.15);
+}
+
+.divider {
+    border: none;
+    border-top: 1px solid #1a1a1f;
+    margin: 2rem 0;
+}
+
+stButton > button {
+    border-radius: 10px !important;
+}
+
+[data-testid="stFileUploader"] {
+    background: #131316;
+    border: 1px dashed #2a2a30;
+    border-radius: 12px;
+    padding: 0.5rem;
+}
+
+[data-testid="stFileUploader"]:hover {
+    border-color: #6ee7b7;
+}
+
+.stProgress > div > div > div {
+    background: linear-gradient(90deg, #6ee7b7, #34d399) !important;
+    border-radius: 100px;
+}
+
+.stProgress > div > div {
+    background: #1a1a1f !important;
+    border-radius: 100px;
+}
+
+.success-box {
+    background: rgba(110,231,183,0.05);
+    border: 1px solid rgba(110,231,183,0.2);
+    border-radius: 12px;
+    padding: 1rem 1.4rem;
+    color: #6ee7b7;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.warning-box {
+    background: rgba(251,191,36,0.05);
+    border: 1px solid rgba(251,191,36,0.15);
+    border-radius: 12px;
+    padding: 1rem 1.4rem;
+    color: #fbbf24;
+    font-size: 0.9rem;
+}
+
+.status-line {
+    font-size: 0.85rem;
+    color: #888;
+    font-style: italic;
+    padding: 0.4rem 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+st.markdown("""
+<div class="app-header">
+    <div class="badge">Outil de prospection</div>
+    <h1>Envoi Automatique</h1>
+    <p>Campagne d'emailing personnalisée depuis Google Sheets</p>
+</div>
+""", unsafe_allow_html=True)
 
 sheet = get_sheet()
 clean_duplicates(sheet)
 
-cv_fr_file = st.file_uploader("CV Français (PDF)", type=["pdf"])
-cv_en_file = st.file_uploader("CV Anglais (PDF)", type=["pdf"])
+
+st.markdown('<div class="section-label">Joindre les CV</div>', unsafe_allow_html=True)
+st.markdown('<div class="card">', unsafe_allow_html=True)
+col_fr, col_en = st.columns(2)
+with col_fr:
+    cv_fr_file = st.file_uploader("CV Français", type=["pdf"], label_visibility="visible")
+with col_en:
+    cv_en_file = st.file_uploader("CV Anglais", type=["pdf"], label_visibility="visible")
+st.markdown('</div>', unsafe_allow_html=True)
+
+
+hr = st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+st.markdown('<div class="section-label">Liste des leads</div>', unsafe_allow_html=True)
 
 if "show" not in st.session_state:
     st.session_state.show = False
 
-col1, col2 = st.columns(2)
-
+col1, col2 = st.columns([1, 1])
 with col1:
-    if st.button("Afficher les leads"):
+    if st.button("📋  Afficher les leads", use_container_width=True):
         st.session_state.show = True
-
 with col2:
-    if st.button("Masquer"):
+    if st.button("✕  Masquer", use_container_width=True):
         st.session_state.show = False
 
 if st.session_state.show:
     rows = fetch_pending_rows(sheet)
-    st.write(f"{len(rows)} leads en attente")
-    for r in rows:
-        st.write(r)
 
-if st.button("Lancer envoi automatique"):
+    total_pending = len(rows)
+    fr_count = sum(1 for r in rows if str(r.get("Langue", "")).upper() == "FR")
+    en_count = total_pending - fr_count
 
+    st.markdown(f"""
+    <div class="stat-row">
+        <div class="stat-box">
+            <div class="value">{total_pending}</div>
+            <div class="label">En attente</div>
+        </div>
+        <div class="stat-box">
+            <div class="value">{fr_count}</div>
+            <div class="label">Français</div>
+        </div>
+        <div class="stat-box">
+            <div class="value">{en_count}</div>
+            <div class="label">Anglais</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if rows:
+        items_html = ""
+        for r in rows:
+            lang = str(r.get("Langue", "")).upper()
+            lang_class = "lang-fr" if lang == "FR" else "lang-en"
+            lang_label = lang if lang in ("FR", "EN") else lang
+            company = str(r.get("Entreprise", "—"))
+            items_html += f"""
+            <div class="lead-item">
+                <div class="lead-dot"></div>
+                <div class="lead-email">{r['Email']}</div>
+                <div class="lead-meta">{company}</div>
+                <span class="lang-badge {lang_class}">{lang_label}</span>
+            </div>
+            """
+        st.markdown(f'<div class="card">{items_html}</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="warning-box">Aucun lead en attente.</div>', unsafe_allow_html=True)
+
+
+st.markdown('<hr class="divider">', unsafe_allow_html=True)
+st.markdown('<div class="section-label">Lancement de la campagne</div>', unsafe_allow_html=True)
+
+if st.button("🚀  Lancer l'envoi automatique", use_container_width=True, type="primary"):
     if cv_fr_file is None or cv_en_file is None:
-        st.error("Uploader les deux CV")
+        st.markdown('<div class="warning-box">⚠️ Veuillez uploader les deux CV avant de lancer.</div>', unsafe_allow_html=True)
         st.stop()
 
     cv_fr_bytes = cv_fr_file.read()
     cv_fr_name = cv_fr_file.name
-
     cv_en_bytes = cv_en_file.read()
     cv_en_name = cv_en_file.name
 
     rows = fetch_pending_rows(sheet)
 
     if not rows:
-        st.info("Aucun email")
+        st.markdown('<div class="warning-box">Aucun email à envoyer.</div>', unsafe_allow_html=True)
         st.stop()
 
     total = len(rows)
@@ -240,8 +495,7 @@ if st.button("Lancer envoi automatique"):
     status = st.empty()
 
     for i, row in enumerate(rows, start=1):
-
-        status.write(f"Envoi {i}/{total} → {row['Email']}")
+        status.markdown(f'<div class="status-line">✉️ Envoi {i}/{total} → {row["Email"]}</div>', unsafe_allow_html=True)
 
         send_email(
             row["Email"],
@@ -249,10 +503,8 @@ if st.button("Lancer envoi automatique"):
             row["Entreprise"],
             row["Sex"],
             row["Langue"],
-            cv_fr_bytes,
-            cv_fr_name,
-            cv_en_bytes,
-            cv_en_name,
+            cv_fr_bytes, cv_fr_name,
+            cv_en_bytes, cv_en_name,
         )
 
         mark_sent(sheet, row["_row"])
@@ -260,7 +512,7 @@ if st.button("Lancer envoi automatique"):
 
         if i < total:
             wait_time = random.randint(45, 90)
-            status.write(f"Envoyé {i}/{total} → pause {wait_time}s")
+            status.markdown(f'<div class="status-line">⏳ Envoyé {i}/{total} — pause de {wait_time}s avant le prochain…</div>', unsafe_allow_html=True)
             time.sleep(wait_time)
 
-    st.success("Terminé")
+    st.markdown('<div class="success-box">✓ Campagne terminée — tous les emails ont été envoyés.</div>', unsafe_allow_html=True)
