@@ -182,17 +182,17 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# CSS personnalisé pour un design professionnel
+# CSS personnalisé - tout en noir sur fond clair
 st.markdown("""
     <style>
-        /* Style général */
+        /* Style général - fond blanc cassé */
         .stApp {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background-color: #f5f5f5;
         }
         
         /* Container principal */
         .main-header {
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             padding: 2rem;
             border-radius: 15px;
             margin-bottom: 2rem;
@@ -212,7 +212,7 @@ st.markdown("""
             font-size: 1.1rem;
         }
         
-        /* Cartes */
+        /* Cartes - fond blanc, texte noir */
         .card {
             background: white;
             padding: 1.5rem;
@@ -220,6 +220,7 @@ st.markdown("""
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             margin-bottom: 1.5rem;
             transition: transform 0.3s ease;
+            color: #000000;
         }
         
         .card:hover {
@@ -230,33 +231,15 @@ st.markdown("""
         .card-title {
             font-size: 1.3rem;
             font-weight: 600;
-            color: #2c3e50;
+            color: #1e3c72;
             margin-bottom: 1rem;
-            border-bottom: 2px solid #3498db;
+            border-bottom: 2px solid #1e3c72;
             padding-bottom: 0.5rem;
         }
         
-        /* Boutons personnalisés */
-        .stButton > button {
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            color: white;
-            border: none;
-            padding: 0.6rem 1.5rem;
-            font-weight: 600;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            width: 100%;
-            font-size: 1rem;
-        }
-        
-        .stButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(44, 62, 80, 0.4);
-        }
-        
-        /* Métriques */
+        /* Métriques - fond bleu foncé, texte blanc */
         .metric-card {
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
             padding: 1rem;
             border-radius: 10px;
@@ -274,15 +257,7 @@ st.markdown("""
             opacity: 0.9;
         }
         
-        /* Zone de progression */
-        .progress-container {
-            background: white;
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-        }
-        
-        /* Message de succès */
+        /* Message de succès - vert clair, texte vert foncé */
         .success-message {
             background: #d4edda;
             color: #155724;
@@ -292,7 +267,7 @@ st.markdown("""
             margin: 1rem 0;
         }
         
-        /* Message d'erreur */
+        /* Message d'erreur - rouge clair, texte rouge foncé */
         .error-message {
             background: #f8d7da;
             color: #721c24;
@@ -302,7 +277,7 @@ st.markdown("""
             margin: 1rem 0;
         }
         
-        /* Message info */
+        /* Message info - bleu clair, texte bleu foncé */
         .info-message {
             background: #d1ecf1;
             color: #0c5460;
@@ -314,7 +289,7 @@ st.markdown("""
         
         /* Uploader */
         .upload-container {
-            border: 2px dashed #3498db;
+            border: 2px dashed #1e3c72;
             border-radius: 10px;
             padding: 1rem;
             text-align: center;
@@ -323,7 +298,7 @@ st.markdown("""
         /* Inputs */
         .stTextInput > div > div > input {
             border-radius: 10px;
-            border: 1px solid #e0e0e0;
+            border: 1px solid #ddd;
         }
         
         /* Dataframe */
@@ -364,6 +339,39 @@ st.markdown("""
         .status-info {
             background-color: #d1ecf1;
             color: #0c5460;
+        }
+        
+        /* Labels en noir */
+        label, .stMarkdown, .stText {
+            color: #000000 !important;
+        }
+        
+        /* Titres en noir */
+        h1, h2, h3, h4, h5, h6 {
+            color: #1e3c72 !important;
+        }
+        
+        /* Boutons - bleu foncé */
+        .stButton > button {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-size: 1rem;
+        }
+        
+        .stButton > button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 60, 114, 0.4);
+        }
+        
+        /* File uploader texte */
+        .stFileUploader > div > div > div > div {
+            color: #000000 !important;
         }
     </style>
 """, unsafe_allow_html=True)
