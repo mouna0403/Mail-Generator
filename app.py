@@ -440,6 +440,8 @@ if st.button("▶️ Envoyer"):
     
     for i, row in enumerate(rows, start=1):
         try:
+            status_text.markdown(f'<div class="status-box info">📤 {i}/{total} - Envoi à {row["Email"]}</div>', unsafe_allow_html=True)
+            
             send_email(
                 row["Email"],
                 row["Name"],
@@ -456,14 +458,14 @@ if st.button("▶️ Envoyer"):
             success_count += 1
             
             progress_bar.progress(i / total)
-            status_text.markdown(f'<div class="status-box success">✓ {i}/{total} - {row["Email"]}</div>', unsafe_allow_html=True)
+            status_text.markdown(f'<div class="status-box success">✓ {i}/{total} - {row["Email"]} envoyé</div>', unsafe_allow_html=True)
             
         except Exception as e:
-            status_text.markdown(f'<div class="status-box error">✗ {i}/{total} - {row["Email"]}</div>', unsafe_allow_html=True)
+            status_text.markdown(f'<div class="status-box error">✗ {i}/{total} - {row["Email"]} : {str(e)}</div>', unsafe_allow_html=True)
         
         if i < total:
             wait_time = random.randint(45, 90)
-            status_text.markdown(f'<div class="status-box wait">⏱ Pause {wait_time}s avant le prochain envoi</div>', unsafe_allow_html=True)
+            status_text.markdown(f'<div class="status-box wait">⏱ {i}/{total} - Pause {wait_time}s avant le prochain envoi</div>', unsafe_allow_html=True)
             time.sleep(wait_time)
     
     st.markdown(f"""
