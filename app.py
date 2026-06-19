@@ -175,37 +175,40 @@ def send_email(to_email, name, company, sex, lang,
 
 
 st.set_page_config(
-    page_title="SendPro",
-    page_icon="📧",
+    page_title="Email Sender",
+    page_icon="✉️",
     layout="centered"
 )
 
 st.markdown("""
     <style>
         .stApp {
-            background-color: #ffffff;
+            background-color: #1a1a1a;
         }
         .main-header {
             text-align: center;
-            padding: 1rem 0;
+            padding: 1.5rem 0;
             margin-bottom: 2rem;
+            border-bottom: 1px solid #333;
         }
         .main-header h1 {
-            color: #1e3c72;
-            font-size: 2rem;
-            font-weight: 600;
+            color: #ffffff;
+            font-size: 1.8rem;
+            font-weight: 300;
             margin: 0;
+            letter-spacing: 1px;
         }
         .main-header p {
-            color: #666;
-            font-size: 1rem;
+            color: #888;
+            font-size: 0.9rem;
             margin: 0.5rem 0 0 0;
         }
         .card {
-            background: #f8f9fa;
+            background: #2a2a2a;
             padding: 1.5rem;
-            border-radius: 10px;
+            border-radius: 8px;
             margin-bottom: 1.5rem;
+            border: 1px solid #333;
         }
         .metric {
             text-align: center;
@@ -213,59 +216,106 @@ st.markdown("""
         }
         .metric-number {
             font-size: 1.8rem;
-            font-weight: 600;
-            color: #1e3c72;
+            font-weight: 500;
+            color: #ffffff;
         }
         .metric-label {
-            font-size: 0.85rem;
-            color: #666;
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 0.2rem;
         }
         .status-box {
             padding: 0.75rem;
-            border-radius: 8px;
+            border-radius: 6px;
             margin: 0.5rem 0;
             text-align: center;
+            font-size: 0.9rem;
         }
         .success {
-            background: #d4edda;
-            color: #155724;
+            background: #1a3a2a;
+            color: #7acc8a;
+            border: 1px solid #2a5a3a;
         }
         .error {
-            background: #f8d7da;
-            color: #721c24;
+            background: #3a1a1a;
+            color: #cc7a7a;
+            border: 1px solid #5a2a2a;
         }
         .info {
-            background: #d1ecf1;
-            color: #0c5460;
+            background: #1a2a3a;
+            color: #7aacc8;
+            border: 1px solid #2a4a5a;
         }
         .terminated {
-            background: #28a745;
-            color: white;
+            background: #1a3a2a;
+            color: #7acc8a;
             padding: 1rem;
-            border-radius: 10px;
+            border-radius: 8px;
             text-align: center;
-            font-weight: 600;
+            font-weight: 500;
             margin: 1rem 0;
+            border: 1px solid #2a5a3a;
         }
         .stButton > button {
-            background: #1e3c72;
-            color: white;
-            border: none;
+            background: #3a3a3a;
+            color: #ffffff;
+            border: 1px solid #555;
             padding: 0.5rem 2rem;
-            border-radius: 8px;
-            font-weight: 500;
+            border-radius: 6px;
+            font-weight: 400;
             width: 100%;
+            transition: all 0.2s;
         }
         .stButton > button:hover {
-            background: #2a5298;
+            background: #4a4a4a;
+            border-color: #777;
+        }
+        .stTextInput > div > div > input {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #ffffff;
+            border-radius: 6px;
+        }
+        .stTextInput > div > div > input:focus {
+            border-color: #666;
+        }
+        label, .stMarkdown, .stText {
+            color: #cccccc !important;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #ffffff !important;
+        }
+        .stFileUploader > div > div > div > div {
+            color: #cccccc !important;
+        }
+        .stFileUploader > div > div > div {
+            background: #2a2a2a;
+            border: 1px dashed #555;
+            border-radius: 6px;
+        }
+        .dataframe {
+            color: #cccccc !important;
+        }
+        .dataframe th {
+            background: #2a2a2a !important;
+            color: #ffffff !important;
+        }
+        .dataframe td {
+            background: #1a1a1a !important;
+            color: #cccccc !important;
+        }
+        .stAlert {
+            background: #2a2a2a !important;
+            border-color: #444 !important;
+            color: #cccccc !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
     <div class="main-header">
-        <h1>📧 SendPro</h1>
-        <p>Envoi d'emails personnalisés</p>
+        <h1>✉️ Email Sender</h1>
+        <p>Envoi automatisé d'emails</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -292,12 +342,25 @@ with st.container():
     st.markdown('<div class="card">', unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("#### CV Français")
+        st.markdown("#### CV FR")
         cv_fr_file = st.file_uploader("PDF", type=["pdf"], key="cv_fr")
     with col2:
-        st.markdown("#### CV Anglais")
+        st.markdown("#### CV EN")
         cv_en_file = st.file_uploader("PDF", type=["pdf"], key="cv_en")
     st.markdown('</div>', unsafe_allow_html=True)
+
+if "show" not in st.session_state:
+    st.session_state.show = False
+
+col1, col2, col3 = st.columns([1, 1, 2])
+
+with col1:
+    if st.button("📋 Afficher"):
+        st.session_state.show = True
+
+with col2:
+    if st.button("✖️ Masquer"):
+        st.session_state.show = False
 
 rows = fetch_pending_rows(sheet)
 
@@ -333,7 +396,22 @@ with col3:
         </div>
     """, unsafe_allow_html=True)
 
-if st.button("▶️ Envoyer les emails"):
+if st.session_state.show:
+    if rows:
+        display_rows = []
+        for r in rows:
+            display_rows.append({
+                "Email": r["Email"],
+                "Nom": r["Name"],
+                "Entreprise": r["Entreprise"],
+                "Sexe": "F" if r["Sex"] == "F" else "M",
+                "Langue": r["Langue"]
+            })
+        st.dataframe(display_rows, use_container_width=True)
+    else:
+        st.info("Aucun lead en attente")
+
+if st.button("▶️ Envoyer"):
     if cv_fr_file is None or cv_en_file is None:
         st.error("Veuillez télécharger les deux CV")
         st.stop()
@@ -373,10 +451,10 @@ if st.button("▶️ Envoyer les emails"):
             success_count += 1
             
             progress_bar.progress(i / total)
-            status_text.markdown(f'<div class="status-box success">✅ {i}/{total} - {row["Email"]}</div>', unsafe_allow_html=True)
+            status_text.markdown(f'<div class="status-box success">✓ {i}/{total} - {row["Email"]}</div>', unsafe_allow_html=True)
             
         except Exception as e:
-            status_text.markdown(f'<div class="status-box error">❌ {i}/{total} - {row["Email"]} : {str(e)}</div>', unsafe_allow_html=True)
+            status_text.markdown(f'<div class="status-box error">✗ {i}/{total} - {row["Email"]}</div>', unsafe_allow_html=True)
         
         if i < total:
             wait_time = random.randint(45, 90)
@@ -384,7 +462,7 @@ if st.button("▶️ Envoyer les emails"):
     
     st.markdown(f"""
         <div class="terminated">
-            ✅ Terminé ! {success_count}/{total} emails envoyés
+            ✓ Terminé - {success_count}/{total} emails envoyés
         </div>
     """, unsafe_allow_html=True)
     
