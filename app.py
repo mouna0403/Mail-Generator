@@ -246,6 +246,11 @@ st.markdown("""
             color: #7aacc8;
             border: 1px solid #2a4a5a;
         }
+        .wait {
+            background: #2a2a1a;
+            color: #cccc7a;
+            border: 1px solid #5a5a2a;
+        }
         .terminated {
             background: #1a3a2a;
             color: #7acc8a;
@@ -458,6 +463,7 @@ if st.button("▶️ Envoyer"):
         
         if i < total:
             wait_time = random.randint(45, 90)
+            status_text.markdown(f'<div class="status-box wait">⏱ Pause {wait_time}s avant le prochain envoi</div>', unsafe_allow_html=True)
             time.sleep(wait_time)
     
     st.markdown(f"""
