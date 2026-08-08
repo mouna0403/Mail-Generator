@@ -2,6 +2,8 @@ import os
 import time
 import random
 import smtplib
+import re
+from pathlib import Path
 import streamlit as st
 import gspread
 
@@ -15,6 +17,10 @@ from email.mime.application import MIMEApplication
 
 load_dotenv()
 
+BASE_DIR = Path(__file__).resolve().parent
+
+load_dotenv(BASE_DIR / ".env", override=True)
+
 GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
 APP_PASSWORD = os.getenv("APP_PASSWORD")
 SHEET_ID = os.getenv("GOOGLE_SHEETS_ID")
@@ -26,6 +32,9 @@ SUBJECTS_EN = [s.strip() for s in os.getenv("SUBJECTS_EN", "").split(";") if s.s
 BODY_FR = os.getenv("BODY_FR")
 BODY_EN = os.getenv("BODY_EN")
 
+print("CREDS_FILE =", CREDS_FILE)
+print("EXISTS =", os.path.exists(CREDS_FILE))
+print("ABSOLUTE =", os.path.abspath(CREDS_FILE))
 
 # ================= GOOGLE SHEETS =================
 
@@ -52,6 +61,12 @@ def is_complete_row(row):
         if row.get(c) is None or str(row.get(c)).strip() == "":
             return False
     return True
+
+def markdown_to_html(text: str) -> str:
+    text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
+    text = text.replace("\n\n", "<br><br>")
+    text = text.replace("\n", "<br>")
+    return text
 
 
 def clean_duplicates(sheet):
@@ -143,7 +158,7 @@ def send_email(to_email, name, company, sex, lang,
 
     salutation = get_salutation(lang, sex)
     subject = get_subject(lang)
-    body = build_body(lang, salutation, name, company)
+    body = markdown_to_html(build_body(lang, salutation, name, company))
 
     if str(lang).upper() == "FR":
         cv_bytes = cv_fr_bytes
@@ -152,12 +167,12 @@ def send_email(to_email, name, company, sex, lang,
         cv_bytes = cv_en_bytes
         cv_name = cv_en_name
 
-    msg = MIMEMultipart()
+    msg = MIMEMultipart("alternative")
     msg["From"] = GMAIL_ADDRESS
     msg["To"] = to_email
     msg["Subject"] = subject
 
-    msg.attach(MIMEText(body, "plain", "utf-8"))
+    msg.attach(MIMEText(body, "html", "utf-8"))
 
     attachment = MIMEApplication(cv_bytes, Name=cv_name)
     attachment["Content-Disposition"] = f'attachment; filename="{cv_name}"'
